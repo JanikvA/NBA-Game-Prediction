@@ -1,0 +1,38 @@
+[tool.poetry]
+name = "nba_game_prediction"
+version = "0.1.0"
+description = "Analyzing NBA game data and predicting the outcome of future games"
+authors = ["Janik von Ahnen <j.v.ahnen@gmx.de>"]
+
+[tool.poetry.dependencies]
+python = ">=3.10,<3.12"
+pandas = "^1.4.3"
+numpy = "^1.23.2"
+scipy = "^1.9.0"
+matplotlib = "^3.5.3"
+ipython = "^8.4.0"
+jupyter = "^1.0.0"
+sympy = "^1.10.1"
+seaborn = "^0.11.2"
+
+[tool.poetry.dev-dependencies]
+black = "^22.6.0"
+pylama = {extras = ["toml"], version = "^8.4.1"}
+autoflake = "^1.4"
+isort = "^5.10.1"
+pytest = "^7.1.2"
+pytest-cov = "^3.0.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.pylama]
+format = "pylint"
+skip = "*/.tox/*,*/.env/*"
+linters = "pylint,mypy,pyflakes,pydocstyle,pycodestyle,isort,eradicate,mccabe"
+
+[tool.pytest.ini_options]
+addopts = "--cov=src"
+testpaths =  "tests" 
+pythonpath = "src"
