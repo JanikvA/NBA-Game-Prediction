@@ -27,11 +27,11 @@ repos:
     -   id: black
         args: [--config=pyproject.toml]
 
-# -   repo: https://github.com/klen/pylama
-#     rev: 8.4.1
-#     hooks:
-#     -   id: pylama
-#         args: [--options=pyproject.toml]
+-   repo: https://github.com/klen/pylama
+    rev: 8.4.1
+    hooks:
+    -   id: pylama
+        args: [--options pyproject.toml]
 
 -   repo: https://github.com/PyCQA/autoflake
     rev: v1.4

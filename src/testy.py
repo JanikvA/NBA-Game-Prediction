@@ -9,6 +9,15 @@ import seaborn as sns
 
 
 def expected_Ea(mmr_a, mmr_b):
+    """_summary_
+
+    Args:
+        mmr_a (_type_): _description_
+        mmr_b (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
     return 1 / (1 + 10 ** ((mmr_b - mmr_a) / 400))
 
 
