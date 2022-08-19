@@ -40,3 +40,5 @@ linters = "pylint,mypy,pyflakes,pydocstyle,pycodestyle,isort,eradicate,mccabe"
 addopts = "--cov=src"
 testpaths =  "tests"
 pythonpath = "src"
+filterwarnings = ["ignore::DeprecationWarning:seaborn.*:","ignore::DeprecationWarning:distutils.*:"]
+# filterwarnings = ["ignore::DeprecationWarning:distutils.*:"]
