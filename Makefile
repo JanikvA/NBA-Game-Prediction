@@ -1,3 +1,5 @@
+.PHONY: tests format lint full
+
 full: lint format tests
 
 lint:
