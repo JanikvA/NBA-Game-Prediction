@@ -1,5 +1,5 @@
-import testy
+import elo
 
 
 def test_expected_Ea():
-    assert testy.expected_Ea(1400, 1400) == 0.5
+    assert elo.expected_Ea(1400, 1400) == 0.5

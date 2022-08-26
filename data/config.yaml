@@ -1,0 +1,10 @@
+data_dir: data
+output_dir: output
+
+collect_game_data:
+  seasons:
+    - 2006-07
+    - 2007-08
+
+  raw_output_name: game_data.csv
+  combined_output_name: combined_game_data.csv
