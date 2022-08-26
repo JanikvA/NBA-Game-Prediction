@@ -5,7 +5,7 @@ import pandas as pd
 from loguru import logger
 from nba_api.stats.endpoints import leaguegamefinder
 
-from nba_game_prediction.config import config
+from nba_game_prediction import config_modul
 
 
 def combine_team_games(df):
@@ -31,7 +31,11 @@ def combine_team_games(df):
     return result
 
 
-def main():
+def func():
+    pass
+
+
+def main(config):
     all_games = pd.DataFrame()
     for season in config["collect_game_data"]["seasons"]:
         logger.info(f"Collecting game data for {season}")
@@ -54,4 +58,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main(config_modul.load_config(config_modul.get_comandline_arguments()["config"]))

@@ -1,24 +1,10 @@
 import datetime
 
 import pandas as pd
-import progressbar
+from loguru import logger
+from rich.progress import Progress
 
-
-def expected_Ea(mmr_a, mmr_b):
-    return 1 / (1 + 10 ** ((mmr_b - mmr_a) / 400))
-
-
-# def calc_MMR_change(mmr_a, mmr_b, a_won, a_k=40, b_k=40):
-#     Ea=expected_Ea(mmr_a, mmr_b)
-#     new_mmr_a= mmr_a + a_k * (a_won - Ea)
-#     new_mmr_b= mmr_b + b_k * ((1-a_won) - (1-Ea))
-#     return new_mmr_a, new_mmr_b
-
-
-def calc_MMR_change(mmr_a, mmr_b, a_won, a_k=40, b_k=40):
-    Ea = expected_Ea(mmr_a, mmr_b)
-    new_mmr_a = mmr_a + a_k * (a_won - Ea)
-    return new_mmr_a
+from nba_game_prediction import config_modul, elo_modul
 
 
 class NBATeam:
@@ -49,7 +35,7 @@ class NBATeam:
     def __init__(self, name):
         self.name = name
         self.games = pd.DataFrame()
-        self.mmr = 1400
+        self.elo = 1400
         if self.name in NBATeam.nba_teams:
             raise Exception(f"{self.name} is already in NBATeam.nba_teams!")
         else:
@@ -81,13 +67,13 @@ class NBATeam:
         tmp_dic["WL"] = int(game[f"WL{this_team}"])
         tmp_dic["TEAM_NAME_opponent"] = game[f"TEAM_NAME{oppo}"]
 
-        oppo_mmr = get_team_mmr(tmp_dic["TEAM_NAME_opponent"])
-        tmp_dic["MMR"] = self.mmr
-        tmp_dic["MMR_opponent"] = oppo_mmr
-        self.mmr = calc_MMR_change(self.mmr, oppo_mmr, tmp_dic["WL"])
+        oppo_elo = get_team_elo(tmp_dic["TEAM_NAME_opponent"])
+        tmp_dic["ELO"] = self.elo
+        tmp_dic["ELO_opponent"] = oppo_elo
+        self.elo = elo_modul.calc_elo_change(self.elo, oppo_elo, tmp_dic["WL"])
 
         formatted_data = pd.DataFrame(tmp_dic, index=[0])
-        self.games = self.games.append(formatted_data, ignore_index=True)
+        self.games = pd.concat([self.games, formatted_data], ignore_index=True)
 
     def get_stats_between_dates(self, from_date, to_date):
         selected_games = self.games[
@@ -104,8 +90,8 @@ class NBATeam:
         WR_HOME_last_season
         WR_AWAY_last_season
 
-        MMR
-        MMR_uncertainty
+        ELO
+        ELO_uncertainty
 
         has_major_injury
         teams_market_size
@@ -116,13 +102,13 @@ class NBATeam:
         for k in list(data.keys()):
             data[k + f"_{games_back}G"] = data.pop(k)
         if self.games[self.games["GAME_DATE"] == date].empty:
-            print("WARNING: No Game was played on the given date")
+            logger.warning("No Game was played on the given date!")
         else:
             day_before = date - datetime.timedelta(days=1)
             data["is_back_to_back"] = not self.games[
                 self.games["GAME_DATE"] == day_before
             ].empty
-            data["MMR"] = self.games[self.games["GAME_DATE"] == date]["MMR"].values[0]
+            data["ELO"] = self.games[self.games["GAME_DATE"] == date]["ELO"].values[0]
         return data
 
     def get_last_N_games(self, date, n_games=10):
@@ -130,23 +116,26 @@ class NBATeam:
         return games_before.head(n_games)
 
 
-def get_team_mmr(team_name):
+def get_team_elo(team_name):
     if team_name in NBATeam.nba_teams:
-        return NBATeam.nba_teams[team_name].mmr
+        return NBATeam.nba_teams[team_name].elo
     else:
         return 1400
 
 
 def fill_team_game_data(games):
-    print("Loading team game data")
-    for index, row in progressbar.progressbar(games.iterrows()):
-        for ha in NBATeam.home_away:
-            team_name = row[f"TEAM_NAME_{ha}"]
-            if team_name not in NBATeam.nba_teams:
-                team = NBATeam(team_name)
-            else:
-                team = NBATeam.nba_teams[team_name]
-            team.add_game(row)
+    logger.info(f"Loading team game data for {len(games)} games")
+    with Progress() as progress:
+        task = progress.add_task("[green]Loading game data...", total=len(games))
+        for index, row in games.iterrows():
+            for ha in NBATeam.home_away:
+                team_name = row[f"TEAM_NAME_{ha}"]
+                if team_name not in NBATeam.nba_teams:
+                    team = NBATeam(team_name)
+                else:
+                    team = NBATeam.nba_teams[team_name]
+                team.add_game(row)
+            progress.update(task, advance=1)
 
 
 def get_train_data_from_game(game):
@@ -162,19 +151,21 @@ def get_train_data_from_game(game):
     return train_data_dict
 
 
-def create_train_data(games):
+def create_train_data(games, output_path):
     train_data = pd.DataFrame()
-    print("Transforming data into trainings data")
-    for index, row in progressbar.progressbar(games.iterrows()):
-        tmp = get_train_data_from_game(row)
-        game_train_data = pd.DataFrame(tmp, index=[0])
-        train_data = train_data.append(game_train_data, ignore_index=True)
-    train_data.to_csv("train_data.csv")
+    logger.info(f"Transforming data into trainings data for {len(games)} games.")
+    with Progress() as progress:
+        task = progress.add_task("[green]Transforming game data...", total=len(games))
+        for index, row in games.iterrows():
+            tmp = get_train_data_from_game(row)
+            game_train_data = pd.DataFrame(tmp, index=[0])
+            train_data = pd.concat([train_data, game_train_data], ignore_index=True)
+            progress.update(task, advance=1)
+    train_data.to_csv(output_path)
 
 
-def get_game_data():
-    games = pd.read_csv("combined_game_data.csv")
-    # games=pd.read_csv("test_data.csv")
+def get_game_data(game_data_path):
+    games = pd.read_csv(game_data_path)
     games["GAME_DATE"] = pd.to_datetime(games["GAME_DATE"])
     games["WL_HOME"] = games.apply(
         lambda row: 1 if row["WL_HOME"] == "W" else 0, axis=1
@@ -185,11 +176,11 @@ def get_game_data():
     return games
 
 
-def main():
-    games = get_game_data()
+def main(config):
+    games = get_game_data(config["combined_output_path"])
     fill_team_game_data(games)
-    create_train_data(games)
+    create_train_data(games, config["train_data_output_path"])
 
 
 if __name__ == "__main__":
-    main()
+    main(config_modul.load_config(config_modul.get_comandline_arguments()["config"]))

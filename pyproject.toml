@@ -43,3 +43,6 @@ addopts = "--cov=nba_game_prediction"
 testpaths =  "tests"
 pythonpath = "nba_game_prediction"
 filterwarnings = ["ignore::DeprecationWarning:seaborn.*:","ignore::DeprecationWarning:distutils.*:"]
+# markers = [
+# 	"integration: Integration test. These can be slow (deselect with '-m \"not integration\"')"
+# ]
