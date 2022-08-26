@@ -33,8 +33,8 @@ def setup(config):
     config["combined_output_path"] = os.path.join(
         config["data_dir"], config["collect_game_data"]["combined_output_name"]
     )
-    config["train_data_output_path"] = os.path.join(
-        config["data_dir"], config["create_train_data"]["train_data_output_name"]
+    config["train_data_path"] = os.path.join(
+        config["data_dir"], config["create_train_data"]["train_data_name"]
     )
 
 

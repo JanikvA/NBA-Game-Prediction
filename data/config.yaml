@@ -10,4 +10,4 @@ collect_game_data:
   combined_output_name: combined_game_data.csv
 
 create_train_data:
-  train_data_output_name: train_data.csv
+  train_data_name: train_data.csv

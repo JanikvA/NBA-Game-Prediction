@@ -179,7 +179,7 @@ def get_game_data(game_data_path):
 def main(config):
     games = get_game_data(config["combined_output_path"])
     fill_team_game_data(games)
-    create_train_data(games, config["train_data_output_path"])
+    create_train_data(games, config["train_data_path"])
 
 
 if __name__ == "__main__":

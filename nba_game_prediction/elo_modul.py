@@ -12,10 +12,9 @@ def expected_Ea(elo_a, elo_b):
     return 1 / (1 + 10 ** ((elo_b - elo_a) / 400))
 
 
-def calc_elo_change(elo_a, elo_b, a_won, a_k=3, b_k=5):
+def calc_elo_change(elo_a, elo_b, a_won, a_k=10):
     Ea = expected_Ea(elo_a, elo_b)
     new_elo_a = elo_a + a_k * (a_won - Ea)
-    # print("ELO change:",a_k * (a_won - Ea))
     return new_elo_a
 
 
