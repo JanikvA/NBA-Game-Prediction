@@ -267,6 +267,21 @@ optional = false
 python-versions = "*"
 
 [[package]]
+name = "docformatter"
+version = "1.5.0"
+description = "Formats docstrings to follow PEP 257"
+category = "main"
+optional = false
+python-versions = ">=3.6,<4.0"
+
+[package.dependencies]
+tomli = {version = ">=2.0.0,<3.0.0", markers = "python_version >= \"3.7\""}
+untokenize = ">=0.1.1,<0.2.0"
+
+[package.extras]
+tomli = ["tomli (<2.0.0)"]
+
+[[package]]
 name = "entrypoints"
 version = "0.4"
 description = "Discover and load entry points from installed packages."
@@ -1483,6 +1498,25 @@ python-versions = ">=3.7"
 test = ["pre-commit", "pytest"]
 
 [[package]]
+name = "trueskill"
+version = "0.4.5"
+description = "The video game rating system"
+category = "main"
+optional = false
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
+
+[package.dependencies]
+six = "*"
+
+[[package]]
+name = "untokenize"
+version = "0.1.1"
+description = "Transforms tokens into original source code (while preserving whitespace)."
+category = "main"
+optional = false
+python-versions = "*"
+
+[[package]]
 name = "urllib3"
 version = "1.26.12"
 description = "HTTP library with thread-safe connection pooling, file post, and more."
@@ -1550,7 +1584,7 @@ dev = ["black (>=19.3b0)", "pytest (>=4.6.2)"]
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.10,<3.12"
-content-hash = "2e81e25a3d7b73644fba865c4fb34ae9cdf7efeddb72659991ffa3052b1597b1"
+content-hash = "9691f87aeb1a65c6f238ed0a4a60ed7ba7103039f087e793354d8a3af4613211"
 
 [metadata.files]
 appnope = []
@@ -1589,6 +1623,10 @@ debugpy = []
 decorator = []
 defusedxml = []
 distlib = []
+docformatter = [
+    {file = "docformatter-1.5.0-py3-none-any.whl", hash = "sha256:ae56c64822c3184602ac83ec37650c9785e80dfec17b4eba4f49ad68815d71c0"},
+    {file = "docformatter-1.5.0.tar.gz", hash = "sha256:9dc71659d3b853c3018cd7b2ec34d5d054370128e12b79ee655498cb339cc711"},
+]
 entrypoints = []
 executing = []
 fastjsonschema = []
@@ -1750,6 +1788,12 @@ tomli = [
 ]
 tornado = []
 traitlets = []
+trueskill = [
+    {file = "trueskill-0.4.5.tar.gz", hash = "sha256:9d62b48d2428369d712bd9becff9f9a2caa325e1a2ab5f9392d34bff757867bb"},
+]
+untokenize = [
+    {file = "untokenize-0.1.1.tar.gz", hash = "sha256:3865dbbbb8efb4bb5eaa72f1be7f3e0be00ea8b7f125c69cbd1f5fda926f37a2"},
+]
 urllib3 = [
     {file = "urllib3-1.26.12-py2.py3-none-any.whl", hash = "sha256:b930dd878d5a8afb066a637fbb35144fe7901e3b209d1cd4f524bd0e9deee997"},
     {file = "urllib3-1.26.12.tar.gz", hash = "sha256:3fa96cf423e6987997fc326ae8df396db2a8b7c667747d47ddd8ecba91f4a74e"},

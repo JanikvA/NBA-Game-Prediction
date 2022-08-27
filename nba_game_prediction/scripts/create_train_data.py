@@ -1,10 +1,13 @@
 import datetime
 
 import pandas as pd
+import trueskill
 from loguru import logger
 from rich.progress import Progress
 
 from nba_game_prediction import config_modul, elo_modul
+
+# TODO make API for elo_modul similar to that of trueskill
 
 
 class NBATeam:
@@ -36,6 +39,7 @@ class NBATeam:
         self.name = name
         self.games = pd.DataFrame()
         self.elo = 1400
+        self.trueskill = trueskill.Rating()
         if self.name in NBATeam.nba_teams:
             raise Exception(f"{self.name} is already in NBATeam.nba_teams!")
         else:
@@ -67,10 +71,21 @@ class NBATeam:
         tmp_dic["WL"] = int(game[f"WL{this_team}"])
         tmp_dic["TEAM_NAME_opponent"] = game[f"TEAM_NAME{oppo}"]
 
+        # FIXME not quite correct because each game is analyzed twice (once for each team)
+        # - but in the second run the elo/trueskill of the home team will
+        # already be updated from the results of this game.
         oppo_elo = get_team_elo(tmp_dic["TEAM_NAME_opponent"])
         tmp_dic["ELO"] = self.elo
         tmp_dic["ELO_opponent"] = oppo_elo
         self.elo = elo_modul.calc_elo_change(self.elo, oppo_elo, tmp_dic["WL"])
+
+        oppo_trueskill = get_team_trueskill(tmp_dic["TEAM_NAME_opponent"])
+        tmp_dic["trueskill_mu"] = self.trueskill.mu
+        tmp_dic["trueskill_mu_opponent"] = oppo_trueskill.mu
+        if tmp_dic["WL"] == 1:
+            self.trueskill, _ = trueskill.rate_1vs1(self.trueskill, oppo_trueskill)
+        else:
+            _, self.trueskill = trueskill.rate_1vs1(oppo_trueskill, self.trueskill)
 
         formatted_data = pd.DataFrame(tmp_dic, index=[0])
         self.games = pd.concat([self.games, formatted_data], ignore_index=True)
@@ -109,6 +124,9 @@ class NBATeam:
                 self.games["GAME_DATE"] == day_before
             ].empty
             data["ELO"] = self.games[self.games["GAME_DATE"] == date]["ELO"].values[0]
+            data["trueskill_mu"] = self.games[self.games["GAME_DATE"] == date][
+                "trueskill_mu"
+            ].values[0]
         return data
 
     def get_last_N_games(self, date, n_games=10):
@@ -116,11 +134,18 @@ class NBATeam:
         return games_before.head(n_games)
 
 
+# TODO the following two methods are not really needed.
+# Just initalize all teams at the start after loading games
 def get_team_elo(team_name):
-    if team_name in NBATeam.nba_teams:
-        return NBATeam.nba_teams[team_name].elo
-    else:
-        return 1400
+    if team_name not in NBATeam.nba_teams:
+        NBATeam(team_name)
+    return NBATeam.nba_teams[team_name].elo
+
+
+def get_team_trueskill(team_name):
+    if team_name not in NBATeam.nba_teams:
+        NBATeam(team_name)
+    return NBATeam.nba_teams[team_name].trueskill
 
 
 def fill_team_game_data(games):
@@ -177,6 +202,7 @@ def get_game_data(game_data_path):
 
 
 def main(config):
+    trueskill.setup(mu=30, draw_probability=0)
     games = get_game_data(config["combined_output_path"])
     fill_team_game_data(games)
     create_train_data(games, config["train_data_path"])

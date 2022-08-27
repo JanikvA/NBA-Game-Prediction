@@ -9,6 +9,7 @@ format:
 	black ./
 	isort ./
 	autoflake --in-place --remove-unused-variables --remove-all-unused-imports **/*.py
+	docformatter --in-place **/*.py
 
 tests:
 	pytest

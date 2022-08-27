@@ -12,12 +12,28 @@ def expected_Ea(elo_a, elo_b):
     return 1 / (1 + 10 ** ((elo_b - elo_a) / 400))
 
 
-def calc_elo_change(elo_a, elo_b, a_won, a_k=10):
+def calc_elo_change(elo_a, elo_b, a_won, a_k=20):
+    """Calculate elo change for player a base on the standard Elo rating used
+    in chess https://en.wikipedia.org/wiki/Elo_rating_system.
+
+    Args:
+        elo_a (float): Elo rating of player a
+        elo_b (float): Elo rating of player b
+        a_won (bool): True if player a won
+        a_k (float, optional): This number effects how big the impact of one
+        particular game on the rating is. Large values mean high fluctuations
+        but also rapid adaptation in case of change in skill (e.g. trades, injuries).
+        Defaults to 10.
+
+    Returns:
+        float: New Elo rating after the match
+    """
     Ea = expected_Ea(elo_a, elo_b)
     new_elo_a = elo_a + a_k * (a_won - Ea)
     return new_elo_a
 
 
+# TODO what to do with the stuff below?
 class Player:
     def __init__(self, name, strength):
         self.name = name
