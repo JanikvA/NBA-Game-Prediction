@@ -1,4 +1,5 @@
 import itertools
+import math
 import random
 from collections import Counter
 
@@ -6,9 +7,38 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+import trueskill
+
+
+def trueskill_win_probability(team1, team2):
+    """Calculate probability for team1 to win based on trueskill. For more
+    information see https://trueskill.org/#trueskill.quality_1vs1 and
+    https://github.com/sublee/trueskill/issues/1#issuecomment-149762508.
+
+    Args:
+        team1 (trueskill.Rating): trueskill.Rating of team1
+        team2 (trueskill.Rating): trueskill.Rating of team2
+
+    Returns:
+        float: Returns win probability for team1
+    """
+    delta_mu = team1.mu - team2.mu
+    sum_sigma = team1.sigma**2 + team2.sigma**2
+    ts = trueskill.global_env()
+    denom = math.sqrt(2 * (ts.beta * ts.beta) + sum_sigma)
+    return ts.cdf(delta_mu / denom)
 
 
 def expected_Ea(elo_a, elo_b):
+    """Represents the win probability for player a.
+
+    Args:
+        elo_a (float): ELO rating of player a
+        elo_b (float): ELO rating of player b
+
+    Returns:
+        float: win probability for player a
+    """
     return 1 / (1 + 10 ** ((elo_b - elo_a) / 400))
 
 

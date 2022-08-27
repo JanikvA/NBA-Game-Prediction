@@ -77,11 +77,17 @@ class NBATeam:
         oppo_elo = get_team_elo(tmp_dic["TEAM_NAME_opponent"])
         tmp_dic["ELO"] = self.elo
         tmp_dic["ELO_opponent"] = oppo_elo
+        tmp_dic["ELO_winprob"] = elo_modul.expected_Ea(self.elo, oppo_elo)
         self.elo = elo_modul.calc_elo_change(self.elo, oppo_elo, tmp_dic["WL"])
 
         oppo_trueskill = get_team_trueskill(tmp_dic["TEAM_NAME_opponent"])
         tmp_dic["trueskill_mu"] = self.trueskill.mu
+        tmp_dic["trueskill_sigma"] = self.trueskill.sigma
         tmp_dic["trueskill_mu_opponent"] = oppo_trueskill.mu
+        tmp_dic["trueskill_sigma_opponent"] = oppo_trueskill.sigma
+        tmp_dic["trueskill_winprob"] = elo_modul.trueskill_win_probability(
+            self.trueskill, oppo_trueskill
+        )
         if tmp_dic["WL"] == 1:
             self.trueskill, _ = trueskill.rate_1vs1(self.trueskill, oppo_trueskill)
         else:
@@ -120,12 +126,22 @@ class NBATeam:
             logger.warning("No Game was played on the given date!")
         else:
             day_before = date - datetime.timedelta(days=1)
+            # TODO make this more DRY
             data["is_back_to_back"] = not self.games[
                 self.games["GAME_DATE"] == day_before
             ].empty
             data["ELO"] = self.games[self.games["GAME_DATE"] == date]["ELO"].values[0]
+            data["ELO_winprob"] = self.games[self.games["GAME_DATE"] == date][
+                "ELO_winprob"
+            ].values[0]
             data["trueskill_mu"] = self.games[self.games["GAME_DATE"] == date][
                 "trueskill_mu"
+            ].values[0]
+            data["trueskill_sigma"] = self.games[self.games["GAME_DATE"] == date][
+                "trueskill_sigma"
+            ].values[0]
+            data["trueskill_winprob"] = self.games[self.games["GAME_DATE"] == date][
+                "trueskill_winprob"
             ].values[0]
         return data
 
@@ -163,26 +179,31 @@ def fill_team_game_data(games):
             progress.update(task, advance=1)
 
 
-def get_train_data_from_game(game):
+def get_train_data_from_game(game, feature_list):
     tmp_dic = {}
     for ha in NBATeam.home_away:
         team = NBATeam.nba_teams[game[f"TEAM_NAME_{ha}"]]
         tmp_dic[ha] = team.get_stats_for_date(game["GAME_DATE"])
-    train_data_dict = {
-        **{"HOME_" + k: v for k, v in tmp_dic["HOME"].items()},
-        **{"AWAY_" + k: v for k, v in tmp_dic["AWAY"].items()},
-    }
+    train_data_dict = {}
+    for feature in feature_list:
+        train_data_dict["HOME_" + feature] = tmp_dic["HOME"][feature]
+        train_data_dict["AWAY_" + feature] = tmp_dic["AWAY"][feature]
     train_data_dict["HOME_WL"] = int(game["WL_HOME"])
+    train_data_dict["SEASON_ID"] = int(game["SEASON_ID"])
+    train_data_dict["GAME_ID"] = int(game["GAME_ID"])
+    train_data_dict["GAME_DATE"] = game["GAME_DATE"]
+    train_data_dict["HOME_TEAM_NAME"] = game["TEAM_NAME_HOME"]
+    train_data_dict["AWAY_TEAM_NAME"] = game["TEAM_NAME_AWAY"]
     return train_data_dict
 
 
-def create_train_data(games, output_path):
+def create_train_data(games, output_path, feature_list):
     train_data = pd.DataFrame()
     logger.info(f"Transforming data into trainings data for {len(games)} games.")
     with Progress() as progress:
         task = progress.add_task("[green]Transforming game data...", total=len(games))
         for index, row in games.iterrows():
-            tmp = get_train_data_from_game(row)
+            tmp = get_train_data_from_game(row, feature_list)
             game_train_data = pd.DataFrame(tmp, index=[0])
             train_data = pd.concat([train_data, game_train_data], ignore_index=True)
             progress.update(task, advance=1)
@@ -205,7 +226,9 @@ def main(config):
     trueskill.setup(mu=30, draw_probability=0)
     games = get_game_data(config["combined_output_path"])
     fill_team_game_data(games)
-    create_train_data(games, config["train_data_path"])
+    create_train_data(
+        games, config["train_data_path"], config["create_train_data"]["feature_list"]
+    )
 
 
 if __name__ == "__main__":

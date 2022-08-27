@@ -11,3 +11,12 @@ collect_game_data:
 
 create_train_data:
   train_data_name: train_data.csv
+  # HOME_WL, TEAM_NAME, GAME_DATE, GAME_ID, and SEASON_ID will always be saved
+  # the following features will be saved for both the HOME and the AWAY team
+  feature_list:
+    - trueskill_winprob
+    - trueskill_mu
+    - trueskill_sigma
+    - ELO_winprob
+    - ELO
+    - is_back_to_back

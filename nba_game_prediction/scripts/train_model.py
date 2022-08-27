@@ -1,74 +1,78 @@
-import matplotlib.pyplot as plt
 import pandas as pd
-import sklearn
-from sklearn import preprocessing
+from loguru import logger
+from sklearn import metrics, model_selection, preprocessing
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.neural_network import MLPClassifier
 
-
-def read_data():
-    return pd.read_csv("train_data.csv")
+from nba_game_prediction import config_modul
 
 
-data = read_data()
-data = data.dropna(how="any")
-y = data["HOME_WL"]
-data["MMR_difference"] = data.apply(
-    lambda row: row["HOME_MMR"] - row["AWAY_MMR"], axis=1
-)
-print(f"Home team win rate: {y.mean()}")
-higher_mmr_wr = data[
-    ((data["MMR_difference"] > 0) & (data["HOME_WL"] == 1))
-    | ((data["MMR_difference"] < 0) & (data["HOME_WL"] == 0))
-]["HOME_WL"].count() / len(data)
-print(f"Team with higher MMR win rate: {higher_mmr_wr}")
-x = data.drop(["HOME_WL", "HOME_PLUS_MINUS", "AWAY_PLUS_MINUS"], axis=1)
-x = x.loc[:, ["MMR_difference"]]
-x_train, x_test, y_train, y_test = sklearn.model_selection.train_test_split(
-    x, y, test_size=0.2
-)
-scaler = preprocessing.StandardScaler().fit(x_train)
-x_train = scaler.transform(x_train)
-x_test = scaler.transform(x_test)
+def main(config):
+    data = pd.read_csv(config["train_data_path"])
+    data = data.dropna(how="any")
+    y = data["HOME_WL"]
+    data["ELO_difference"] = data.apply(
+        lambda row: row["HOME_ELO"] - row["AWAY_ELO"], axis=1
+    )
+    data["trueskill_mu_difference"] = data.apply(
+        lambda row: row["HOME_trueskill_mu"] - row["AWAY_trueskill_mu"], axis=1
+    )
+    data["trueskill_sigma_sum"] = data.apply(
+        lambda row: row["HOME_trueskill_sigma"] + row["AWAY_trueskill_sigma"], axis=1
+    )
+    logger.info(f"Home team win rate: {y.mean()}")
 
-classifiers = [
-    # KNeighborsClassifier(3),
-    # SVC(kernel="linear", C=0.025),
-    # SVC(gamma=2, C=1),
-    # GaussianProcessClassifier(1.0 * RBF(1.0)),
-    # DecisionTreeClassifier(max_depth=5),
-    # RandomForestClassifier(max_depth=5, n_estimators=10, max_features=1),
-    # MLPClassifier(alpha=1, max_iter=1000, hidden_layer_sizes=(100,)),
-    # MLPClassifier(alpha=1, max_iter=1000, hidden_layer_sizes=(10,)),
-    MLPClassifier(alpha=1, max_iter=200, hidden_layer_sizes=(50,)),
-    # AdaBoostClassifier(),
-    # GaussianNB(),
-    # QuadraticDiscriminantAnalysis()
-]
+    higher_elo_wr = data[
+        ((data["ELO_difference"] > 0) & (data["HOME_WL"] == 1))
+        | ((data["ELO_difference"] < 0) & (data["HOME_WL"] == 0))
+    ]["HOME_WL"].count() / len(data)
+    logger.info(f"Team with higher ELO win rate: {higher_elo_wr}")
+    higher_trueskill_wr = data[
+        ((data["trueskill_mu_difference"] > 0) & (data["HOME_WL"] == 1))
+        | ((data["trueskill_mu_difference"] < 0) & (data["HOME_WL"] == 0))
+    ]["HOME_WL"].count() / len(data)
+    logger.info(f"Team with higher trueskill_mu win rate: {higher_trueskill_wr}")
+    x = data.drop(["HOME_WL"], axis=1)
+    x = x.loc[
+        :,
+        [
+            "ELO_difference",
+            "trueskill_mu_difference",
+            "trueskill_sigma_sum",
+            "HOME_is_back_to_back",
+            "AWAY_is_back_to_back",
+        ],
+    ]
+    x_train, x_test, y_train, y_test = model_selection.train_test_split(
+        x, y, test_size=0.2
+    )
+    scaler = preprocessing.StandardScaler().fit(x_train)
+    x_train = scaler.transform(x_train)
+    x_test = scaler.transform(x_test)
 
-name = [
-    # "KNeighborsClassifier(3)",
-    # "SVC(kernel='linear', C=0.025)",
-    # "SVC(gamma=2, C=1)",
-    # "GaussianProcessClassifier(1.0 * RBF(1.0))",
-    # "DecisionTreeClassifier(max_depth=5)",
-    # "RandomForestClassifier(max_depth=5, n_estimators=10, max_features=1)",
-    "MLPClassifier(alpha=1, max_iter=1000)",
-    # "AdaBoostClassifier()",
-    # "GaussianNB()",
-    # "QuadraticDiscriminantAnalysis()"
-]
-for n, clf in enumerate(classifiers):
-    clf.fit(x_train, y_train)
-    prediction = clf.predict(x_test)
-    prediction_prob = clf.predict_proba(x_test)
-    print(prediction_prob.shape)
-    train_prediction = clf.predict(x_train)
-    train_acc = sklearn.metrics.accuracy_score(y_train, train_prediction)
-    test_acc = sklearn.metrics.accuracy_score(y_test, prediction)
-    print(f"{name[n]}: {test_acc} ({train_acc})")
+    classifiers = [
+        RandomForestClassifier(max_depth=3),
+        RandomForestClassifier(max_depth=5),
+        RandomForestClassifier(max_depth=10),
+        MLPClassifier(alpha=1, max_iter=200, hidden_layer_sizes=(50,)),
+    ]
 
-    # sns.histplot(x=prediction_prob[:,1],hue=y_test, multiple="stack")
-    # sns.histplot(x=prediction_prob[:,1],hue=y_test)
-    # sns.displot(x=prediction_prob[:,1],hue=y_test, kind="kde", multiple="fill")
-    # sns.scatterplot(x=prediction_prob[:,1],y=x_test[:,-1])
-    plt.show()
+    name = [
+        "RandomForestClassifier(max_depth=3)",
+        "RandomForestClassifier(max_depth=5)",
+        "RandomForestClassifier(max_depth=10)",
+        "MLPClassifier(alpha=1, max_iter=1000)",
+    ]
+    for n, clf in enumerate(classifiers):
+        clf.fit(x_train, y_train)
+        prediction = clf.predict(x_test)
+        prediction_prob = clf.predict_proba(x_test)
+        logger.info(prediction_prob.shape)
+        train_prediction = clf.predict(x_train)
+        train_acc = metrics.accuracy_score(y_train, train_prediction)
+        test_acc = metrics.accuracy_score(y_test, prediction)
+        logger.info(f"{name[n]}: {test_acc} ({train_acc})")
+
+
+if __name__ == "__main__":
+    main(config_modul.load_config(config_modul.get_comandline_arguments()["config"]))
