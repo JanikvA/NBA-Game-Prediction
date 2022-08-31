@@ -10,6 +10,10 @@ from loguru import logger
 from nba_game_prediction import config_modul
 
 
+def add_random_probs(data):
+    data["random_winprob"] = data.apply(lambda row: random.uniform(0, 1), axis=1)
+
+
 def pred_vs_actual_prob_comparison(train_data, prob_key, out_dir):
     bins = [0, 0.2, 0.3, 0.4, 0.45, 0.5, 0.55, 0.6, 0.7, 0.8, 1]
     pd.DataFrame()
@@ -36,8 +40,6 @@ def pred_vs_actual_prob_comparison(train_data, prob_key, out_dir):
         )
         y_err.append(unc / y_pred_data[-1])
         ratio.append(y_actual_data[-1] / y_pred_data[-1])
-    # TODO add plot for a clasifier that always assigns 50% wr probability and one
-    # which assigns a random probability and one that assigns randomly but with pdf from data
     plt.errorbar(x=x_data, y=ratio, yerr=y_err, color="black")
     out_file_name = os.path.join(out_dir, "probability_comparison_" + prob_key + ".png")
     logger.info(f"Saving plot to: {out_file_name}")
@@ -62,11 +64,11 @@ def feature_correlation(train_data, method, out_dir):
         ],
         axis=1,
     )
-    sns.heatmap(plot_data.corr(method=method), vmin=-1, vmax=1, annot=True)
+    fig, ax = plt.subplots(figsize=(20, 15))
+    sns.heatmap(plot_data.corr(method=method), vmin=-1, vmax=1, annot=True, ax=ax)
     out_file_name = os.path.join(out_dir, "feature_correlation_" + method + ".png")
     logger.info(f"Saving plot to: {out_file_name}")
-    plt.savefig(out_file_name)
-    plt.clf()
+    fig.savefig(out_file_name)
 
 
 def feature_pair_plot(train_data, out_dir):
@@ -77,8 +79,9 @@ def feature_pair_plot(train_data, out_dir):
             "AWAY_TEAM_NAME",
             "HOME_TEAM_NAME",
             "GAME_DATE",
-            "AWAY_is_back_to_back",
             "HOME_is_back_to_back",
+            "AWAY_is_back_to_back",
+            "is_Playoffs",
         ],
         axis=1,
     )
@@ -89,24 +92,14 @@ def feature_pair_plot(train_data, out_dir):
     plt.clf()
 
 
-def add_random_probs(data):
-    data["random_winprob"] = data.apply(lambda row: random.uniform(0, 1), axis=1)
-
-    # data["random_winprob_with_data_pdf"] = data.apply(lambda row: random.,1), axis=1)
-    # bins = [0, 0.2, 0.3, 0.4, 0.45, 0.5, 0.55, 0.6, 0.7, 0.8, 1]
-    # distribution = (1./6, 2./6, 3./6)
-    # np.random.choice(np.arange(len(distribution)), p=distribution)
-    # np.random.choice(np.arange(len(distribution)), p=distribution, size=10)
-
-
 def main(config):
     train_data = pd.read_csv(config["train_data_path"])
     add_random_probs(train_data)
     for prob in ["HOME_ELO_winprob", "HOME_trueskill_winprob", "random_winprob"]:
         pred_vs_actual_prob_comparison(train_data, prob, config["output_dir"])
-    # for method in ["pearson", "kendall", "spearman"]:
-    #     feature_correlation(train_data, method, config["output_dir"])
-    # feature_pair_plot(train_data, config["output_dir"])
+    for method in ["pearson", "kendall", "spearman"]:
+        feature_correlation(train_data, method, config["output_dir"])
+    feature_pair_plot(train_data, config["output_dir"])
 
 
 if __name__ == "__main__":

@@ -47,7 +47,7 @@ class NBATeam:
 
     def add_game(self, game):
         tmp_dic = {}
-        for uniq in ["SEASON_ID", "GAME_ID", "GAME_DATE"]:
+        for uniq in ["SEASON_ID", "GAME_ID", "GAME_DATE", "SEASON_TYPE"]:
             tmp_dic[uniq] = game[uniq]
 
         HOME_GAME = game["TEAM_NAME_HOME"] == self.name
@@ -127,9 +127,9 @@ class NBATeam:
         else:
             day_before = date - datetime.timedelta(days=1)
             # TODO make this more DRY
-            data["is_back_to_back"] = not self.games[
-                self.games["GAME_DATE"] == day_before
-            ].empty
+            data["is_back_to_back"] = int(
+                not self.games[self.games["GAME_DATE"] == day_before].empty
+            )
             data["ELO"] = self.games[self.games["GAME_DATE"] == date]["ELO"].values[0]
             data["ELO_winprob"] = self.games[self.games["GAME_DATE"] == date][
                 "ELO_winprob"
@@ -191,6 +191,7 @@ def get_train_data_from_game(game, feature_list):
     train_data_dict["HOME_WL"] = int(game["WL_HOME"])
     train_data_dict["SEASON_ID"] = int(game["SEASON_ID"])
     train_data_dict["GAME_ID"] = int(game["GAME_ID"])
+    train_data_dict["is_Playoffs"] = int(game["SEASON_TYPE"] == "Playoffs")
     train_data_dict["GAME_DATE"] = game["GAME_DATE"]
     train_data_dict["HOME_TEAM_NAME"] = game["TEAM_NAME_HOME"]
     train_data_dict["AWAY_TEAM_NAME"] = game["TEAM_NAME_AWAY"]

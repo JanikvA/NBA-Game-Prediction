@@ -22,7 +22,10 @@ def combine_team_games(df):
     """
     # Join every row to all others with the same game ID.
     joined = pd.merge(
-        df, df, suffixes=["_HOME", "_AWAY"], on=["SEASON_ID", "GAME_ID", "GAME_DATE"]
+        df,
+        df,
+        suffixes=["_HOME", "_AWAY"],
+        on=["SEASON_ID", "GAME_ID", "GAME_DATE", "SEASON_TYPE"],
     )
     # Filter out any row that is joined to itself.
     result = joined[joined.TEAM_ID_HOME != joined.TEAM_ID_AWAY]
@@ -39,12 +42,16 @@ def main(config):
     all_games = pd.DataFrame()
     for season in config["collect_game_data"]["seasons"]:
         logger.info(f"Collecting game data for {season}")
-        gamefinder = leaguegamefinder.LeagueGameFinder(
-            season_nullable=season, league_id_nullable="00"
-        )
-        games = gamefinder.get_data_frames()[0]
-        all_games = pd.concat([all_games, games], ignore_index=True)
-        time.sleep(1)
+        for season_type in config["collect_game_data"]["season_types"]:
+            gamefinder = leaguegamefinder.LeagueGameFinder(
+                season_nullable=season,
+                league_id_nullable="00",
+                season_type_nullable=season_type,
+            )
+            games = gamefinder.get_data_frames()[0]
+            games["SEASON_TYPE"] = season_type
+            all_games = pd.concat([all_games, games], ignore_index=True)
+            time.sleep(1)
     all_games.to_csv(
         os.path.join(config["data_dir"], config["collect_game_data"]["raw_output_name"])
     )
