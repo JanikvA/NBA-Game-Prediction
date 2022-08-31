@@ -7,6 +7,9 @@ from rich.progress import Progress
 
 from nba_game_prediction import config_modul, elo_modul
 
+# import sqlite3
+
+
 # TODO make API for elo_modul similar to that of trueskill
 
 
@@ -213,6 +216,11 @@ def create_train_data(games, output_path, feature_list):
 
 def get_game_data(game_data_path):
     games = pd.read_csv(game_data_path)
+
+    # connection = sqlite3.connect(config["sql_db_path"])
+    # games = pd.read_sql("")
+    # connection.close()
+
     games["GAME_DATE"] = pd.to_datetime(games["GAME_DATE"])
     games["WL_HOME"] = games.apply(
         lambda row: 1 if row["WL_HOME"] == "W" else 0, axis=1

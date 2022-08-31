@@ -1,5 +1,6 @@
 data_dir: data
 output_dir: output
+sql_db_path: data/nba_games.db
 
 collect_game_data:
   seasons:

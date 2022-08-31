@@ -4,3 +4,4 @@ __pycache__
 *.csv
 tests/test_output
 output/
+*.db
