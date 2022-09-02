@@ -1,6 +1,7 @@
 import math
 import os
 import random
+import sqlite3
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -93,7 +94,9 @@ def feature_pair_plot(train_data, out_dir):
 
 
 def main(config):
-    train_data = pd.read_csv(config["train_data_path"])
+    connection = sqlite3.connect(config["sql_db_path"])
+    train_data = pd.read_sql("SELECT * from train_data", connection)
+    connection.close()
     add_random_probs(train_data)
     for prob in ["HOME_ELO_winprob", "HOME_trueskill_winprob", "random_winprob"]:
         pred_vs_actual_prob_comparison(train_data, prob, config["output_dir"])

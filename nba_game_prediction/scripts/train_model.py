@@ -1,3 +1,5 @@
+import sqlite3
+
 import pandas as pd
 from loguru import logger
 from sklearn import metrics, model_selection, preprocessing
@@ -8,7 +10,9 @@ from nba_game_prediction import config_modul
 
 
 def main(config):
-    data = pd.read_csv(config["train_data_path"])
+    connection = sqlite3.connect(config["sql_db_path"])
+    data = pd.read_sql("SELECT * from train_data", connection)
+    connection.close()
     data = data.dropna(how="any")
     y = data["HOME_WL"]
     data["ELO_difference"] = data.apply(

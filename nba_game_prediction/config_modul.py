@@ -1,5 +1,6 @@
 import argparse
 import os
+import sys
 
 import yaml
 from loguru import logger
@@ -26,22 +27,13 @@ def setup(config):
             logger.info(f"Creating {config[dir_path_keys]}")
             os.makedirs(config[dir_path_keys])
 
-    # For convenience adding keys that are used multiple times
-    config["raw_output_path"] = os.path.join(
-        config["data_dir"], config["collect_game_data"]["raw_output_name"]
-    )
-    config["combined_output_path"] = os.path.join(
-        config["data_dir"], config["collect_game_data"]["combined_output_name"]
-    )
-    config["train_data_path"] = os.path.join(
-        config["data_dir"], config["create_train_data"]["train_data_name"]
-    )
-
 
 def load_config(path_to_config):
     with open(path_to_config, "r") as config_file:
         config = yaml.safe_load(config_file)
     setup(config)
+    logger.remove()
+    logger.add(sys.stderr, level=config["logging_level"])
     return config
 
 

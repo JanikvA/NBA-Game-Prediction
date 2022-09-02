@@ -1,4 +1,5 @@
 import datetime
+import sqlite3
 
 import pandas as pd
 import trueskill
@@ -6,9 +7,6 @@ from loguru import logger
 from rich.progress import Progress
 
 from nba_game_prediction import config_modul, elo_modul
-
-# import sqlite3
-
 
 # TODO make API for elo_modul similar to that of trueskill
 
@@ -201,7 +199,7 @@ def get_train_data_from_game(game, feature_list):
     return train_data_dict
 
 
-def create_train_data(games, output_path, feature_list):
+def create_train_data(games, sql_db_connection, feature_list):
     train_data = pd.DataFrame()
     logger.info(f"Transforming data into trainings data for {len(games)} games.")
     with Progress() as progress:
@@ -211,16 +209,11 @@ def create_train_data(games, output_path, feature_list):
             game_train_data = pd.DataFrame(tmp, index=[0])
             train_data = pd.concat([train_data, game_train_data], ignore_index=True)
             progress.update(task, advance=1)
-    train_data.to_csv(output_path)
+    train_data.to_sql("train_data", sql_db_connection, if_exists="replace", index=False)
 
 
-def get_game_data(game_data_path):
-    games = pd.read_csv(game_data_path)
-
-    # connection = sqlite3.connect(config["sql_db_path"])
-    # games = pd.read_sql("")
-    # connection.close()
-
+def get_game_data(sql_db_connection):
+    games = pd.read_sql("SELECT * from NBA_games", sql_db_connection)
     games["GAME_DATE"] = pd.to_datetime(games["GAME_DATE"])
     games["WL_HOME"] = games.apply(
         lambda row: 1 if row["WL_HOME"] == "W" else 0, axis=1
@@ -232,12 +225,12 @@ def get_game_data(game_data_path):
 
 
 def main(config):
+    connection = sqlite3.connect(config["sql_db_path"])
     trueskill.setup(mu=30, draw_probability=0)
-    games = get_game_data(config["combined_output_path"])
+    games = get_game_data(connection)
     fill_team_game_data(games)
-    create_train_data(
-        games, config["train_data_path"], config["create_train_data"]["feature_list"]
-    )
+    create_train_data(games, connection, config["create_train_data"]["feature_list"])
+    connection.close()
 
 
 if __name__ == "__main__":

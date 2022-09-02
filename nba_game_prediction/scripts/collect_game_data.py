@@ -49,17 +49,7 @@ def main(config):
             all_games = pd.concat([all_games, games], ignore_index=True)
             time.sleep(1)
 
-    # all_games.to_csv(
-    #     os.path.join(config["data_dir"], config["collect_game_data"]["raw_output_name"])
-    # )
-
     combined_games = combine_team_games(all_games)
-
-    # combined_games.to_csv(
-    #     os.path.join(
-    #         config["data_dir"], config["collect_game_data"]["combined_output_name"]
-    #     )
-    # )
 
     sql_connection = sqlite3.connect(config["sql_db_path"])
     all_games.to_sql(
