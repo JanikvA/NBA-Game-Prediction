@@ -1,5 +1,7 @@
+import os
 import sqlite3
 
+import matplotlib.pyplot as plt
 import pandas as pd
 from loguru import logger
 from sklearn import metrics, model_selection, preprocessing
@@ -76,6 +78,13 @@ def main(config):
         train_acc = metrics.accuracy_score(y_train, train_prediction)
         test_acc = metrics.accuracy_score(y_test, prediction)
         logger.info(f"{name[n]}: {test_acc} ({train_acc})")
+        metrics.ConfusionMatrixDisplay.from_predictions(y_test, prediction)
+        out_file_name = os.path.join(
+            config["output_dir"], name[n] + "_confusion_matrix.png"
+        )
+        logger.info(f"Saving plot to: {out_file_name}")
+        plt.savefig(out_file_name)
+        plt.clf()
 
 
 if __name__ == "__main__":
