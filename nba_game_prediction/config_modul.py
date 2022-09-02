@@ -2,6 +2,8 @@ import argparse
 import os
 import sys
 
+import pandas as pd
+import seaborn as sns
 import yaml
 from loguru import logger
 
@@ -34,6 +36,9 @@ def load_config(path_to_config):
     setup(config)
     logger.remove()
     logger.add(sys.stderr, level=config["logging_level"])
+    from rich.traceback import install
+
+    install(show_locals=True, suppress=[pd, sns])
     return config
 
 

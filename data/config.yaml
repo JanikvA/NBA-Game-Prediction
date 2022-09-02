@@ -11,11 +11,7 @@ collect_game_data:
     - Regular Season
     - Playoffs
 
-  raw_output_name: game_data.csv
-  combined_output_name: combined_game_data.csv
-
 create_train_data:
-  train_data_name: train_data.csv
   # HOME_WL, TEAM_NAME, GAME_DATE, GAME_ID, is_Playoffs, and SEASON_ID will always be saved
   # the following features will be saved for both the HOME and the AWAY team
   feature_list:
@@ -25,3 +21,9 @@ create_train_data:
     - ELO_winprob
     - ELO
     - is_back_to_back
+
+plot_train_data:
+  teams_to_plot:
+    - Golden State Warriors
+    - Cleveland Cavaliers
+    - Los Angeles Lakers

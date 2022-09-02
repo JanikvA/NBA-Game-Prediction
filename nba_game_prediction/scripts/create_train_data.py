@@ -48,7 +48,7 @@ class NBATeam:
 
     def add_game(self, game):
         tmp_dic = {}
-        for uniq in ["SEASON_ID", "GAME_ID", "GAME_DATE", "SEASON_TYPE"]:
+        for uniq in ["SEASON_ID", "GAME_ID", "GAME_DATE", "SEASON_TYPE", "SEASON"]:
             tmp_dic[uniq] = game[uniq]
 
         HOME_GAME = game["TEAM_NAME_HOME"] == self.name
@@ -191,6 +191,7 @@ def get_train_data_from_game(game, feature_list):
         train_data_dict["AWAY_" + feature] = tmp_dic["AWAY"][feature]
     train_data_dict["HOME_WL"] = int(game["WL_HOME"])
     train_data_dict["SEASON_ID"] = int(game["SEASON_ID"])
+    train_data_dict["SEASON"] = int(game["SEASON"])
     train_data_dict["GAME_ID"] = int(game["GAME_ID"])
     train_data_dict["is_Playoffs"] = int(game["SEASON_TYPE"] == "Playoffs")
     train_data_dict["GAME_DATE"] = game["GAME_DATE"]
