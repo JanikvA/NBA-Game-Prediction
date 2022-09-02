@@ -154,7 +154,7 @@ def plot_league_skill_distribution(connection, algo, out_dir):
             )
             team_data["GAME_DATE"] = pd.to_datetime(team_data["GAME_DATE"])
             team_data.set_index("GAME_DATE")
-            if team_data.empty():
+            if team_data.loc[team_data["SEASON"] == season].empty:
                 logger.warning(f"{team_name} has no games in the {season} season!")
             else:
                 season_dict[f"{algo}"].append(
