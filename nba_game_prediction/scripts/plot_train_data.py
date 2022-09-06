@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 from loguru import logger
+from aquarel import load_theme
 
 from nba_game_prediction import config_modul
 
@@ -195,6 +196,8 @@ def plot_league_skill_distribution(connection, algo, out_dir):
 
 
 def main(config):
+    theme = load_theme("arctic_dark")
+    theme.apply()
     connection = sqlite3.connect(config["sql_db_path"])
     train_data = pd.read_sql("SELECT * from train_data", connection)
 

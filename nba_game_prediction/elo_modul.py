@@ -28,41 +28,55 @@ def trueskill_win_probability(team1, team2):
     denom = math.sqrt(2 * (ts.beta * ts.beta) + sum_sigma)
     return ts.cdf(delta_mu / denom)
 
+class ELO:
+    def __init__(self, elo):
+        self.elo
 
-def expected_Ea(elo_a, elo_b):
-    """Represents the win probability for player a.
+    @classmethod
+    def Rating(elo=1400):
+        return elo
 
-    Args:
-        elo_a (float): ELO rating of player a
-        elo_b (float): ELO rating of player b
+    @classmethod
+    def expected_Ea(cls, elo_a, elo_b):
+        """Represents the win probability for player a.
 
-    Returns:
-        float: win probability for player a
-    """
-    return 1 / (1 + 10 ** ((elo_b - elo_a) / 400))
+        Args:
+            elo_a (float): ELO rating of player a
+            elo_b (float): ELO rating of player b
 
+        Returns:
+            float: win probability for player a
+        """
+        return 1 / (1 + 10 ** ((elo_b - elo_a) / 400))
 
-def calc_elo_change(elo_a, elo_b, a_won, a_k=20):
-    """Calculate elo change for player a base on the standard Elo rating used
-    in chess https://en.wikipedia.org/wiki/Elo_rating_system.
+    @classmethod
+    def calc_elo_change(cls, elo_a, elo_b, a_won, a_k=20):
+        """Calculate elo change for player a base on the standard Elo rating used
+        in chess https://en.wikipedia.org/wiki/Elo_rating_system.
 
-    Args:
-        elo_a (float): Elo rating of player a
-        elo_b (float): Elo rating of player b
-        a_won (bool): True if player a won
-        a_k (float, optional): This number effects how big the impact of one
-        particular game on the rating is. Large values mean high fluctuations
-        but also rapid adaptation in case of change in skill (e.g. trades, injuries).
-        Defaults to 10.
+        Args:
+            elo_a (float): Elo rating of player a
+            elo_b (float): Elo rating of player b
+            a_won (bool): True if player a won
+            a_k (float, optional): This number effects how big the impact of one
+            particular game on the rating is. Large values mean high fluctuations
+            but also rapid adaptation in case of change in skill (e.g. trades, injuries).
+            Defaults to 10.
 
-    Returns:
-        float: New Elo rating after the match
-    """
-    Ea = expected_Ea(elo_a, elo_b)
-    new_elo_a = elo_a + a_k * (a_won - Ea)
-    return new_elo_a
+        Returns:
+            float: New Elo rating after the match
+        """
+        Ea = cls.expected_Ea(elo_a, elo_b)
+        new_elo_a = elo_a + a_k * (a_won - Ea)
+        return new_elo_a
 
+    @classmethod
+    def rate_1vs1(cls, elo_obj_a, elo_obj_b):
+        new_elo_a = ELO.calc_elo_change(elo_obj_a, elo_obj_b, a_won=True)
+        new_elo_b = ELO.calc_elo_change(elo_obj_b, elo_obj_a, a_won=False)
+        return new_elo_a, new_elo_b
 
+""""
 # TODO what to do with the stuff below?
 class Player:
     def __init__(self, name, strength):
@@ -217,3 +231,5 @@ def test():
 if __name__ == "__main__":
     # main()
     test()
+
+"""
