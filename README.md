@@ -10,6 +10,7 @@
 ```bash
 poetry install
 poetry shell
+pre-commit install
 ```
 
 ## Getting Started

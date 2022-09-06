@@ -1,12 +1,11 @@
 import datetime
 import sqlite3
 
+import numpy as np
 import pandas as pd
 import trueskill
 from loguru import logger
 from rich.progress import Progress
-import numpy as np
-import rich
 
 from nba_game_prediction import config_modul, elo_modul
 
@@ -40,7 +39,7 @@ class NBATeam:
     def get_opposite_home_away(cls, home_away):
         if home_away not in cls.home_away:
             raise Exception(f"{home_away} has to be in {cls.home_away}")
-        return "HOME" if home_away=="AWAY" else "AWAY"
+        return "HOME" if home_away == "AWAY" else "AWAY"
 
     def __init__(self, name):
         self.name = name
@@ -73,7 +72,13 @@ class NBATeam:
             data["is_back_to_back"] = int(
                 not self.games[self.games["GAME_DATE"] == day_before].empty
             )
-            for key in ["ELO", "ELO_winprob", "trueskill_mu", "trueskill_sigma", "trueskill_winprob"]:
+            for key in [
+                "ELO",
+                "ELO_winprob",
+                "trueskill_mu",
+                "trueskill_sigma",
+                "trueskill_winprob",
+            ]:
                 data[key] = self.games[self.games["GAME_DATE"] == date][key].values[0]
         return data
 
@@ -84,16 +89,18 @@ class NBATeam:
 
 
 def extract_game_data(game_data):
-    team_data_dic={ha:{} for ha in NBATeam.home_away}
-    team_obj_dic={ha:NBATeam.nba_teams[game_data[f"TEAM_NAME_{ha}"]] for ha in NBATeam.home_away }
+    team_data_dic = {ha: {} for ha in NBATeam.home_away}
+    team_obj_dic = {
+        ha: NBATeam.nba_teams[game_data[f"TEAM_NAME_{ha}"]] for ha in NBATeam.home_away
+    }
 
     team_data_dic["HOME"]["HOME_GAME"] = 1
     team_data_dic["AWAY"]["HOME_GAME"] = 0
-    team_data_dic["HOME"]["TEAM_NAME_opponent"] = game_data[f"TEAM_NAME_AWAY"]
-    team_data_dic["AWAY"]["TEAM_NAME_opponent"] = game_data[f"TEAM_NAME_HOME"]
+    team_data_dic["HOME"]["TEAM_NAME_opponent"] = game_data["TEAM_NAME_AWAY"]
+    team_data_dic["AWAY"]["TEAM_NAME_opponent"] = game_data["TEAM_NAME_HOME"]
 
     for ha in NBATeam.home_away:
-        opposite_ha=NBATeam.get_opposite_home_away(ha)
+        opposite_ha = NBATeam.get_opposite_home_away(ha)
         for uniq in ["SEASON_ID", "GAME_ID", "GAME_DATE", "SEASON_TYPE", "SEASON"]:
             team_data_dic[ha][uniq] = game_data[uniq]
         for team_stat in NBATeam.team_stats:
@@ -102,24 +109,46 @@ def extract_game_data(game_data):
         team_data_dic[ha]["TEAM_NAME_opponent"] = game_data[f"TEAM_NAME_{opposite_ha}"]
         team_data_dic[ha]["ELO"] = team_obj_dic[ha].elo
         team_data_dic[ha]["ELO_opponent"] = team_obj_dic[opposite_ha].elo
-        team_data_dic[ha]["ELO_winprob"] = elo_modul.ELO.expected_Ea(team_obj_dic[ha].elo, team_obj_dic[opposite_ha].elo)
+        team_data_dic[ha]["ELO_winprob"] = elo_modul.ELO.expected_Ea(
+            team_obj_dic[ha].elo, team_obj_dic[opposite_ha].elo
+        )
         team_data_dic[ha]["trueskill_mu"] = team_obj_dic[ha].trueskill.mu
         team_data_dic[ha]["trueskill_sigma"] = team_obj_dic[ha].trueskill.sigma
-        team_data_dic[ha]["trueskill_mu_opponent"] = team_obj_dic[opposite_ha].trueskill.mu
-        team_data_dic[ha]["trueskill_sigma_opponent"] = team_obj_dic[opposite_ha].trueskill.sigma
+        team_data_dic[ha]["trueskill_mu_opponent"] = team_obj_dic[
+            opposite_ha
+        ].trueskill.mu
+        team_data_dic[ha]["trueskill_sigma_opponent"] = team_obj_dic[
+            opposite_ha
+        ].trueskill.sigma
         team_data_dic[ha]["trueskill_winprob"] = elo_modul.trueskill_win_probability(
             team_obj_dic[ha].trueskill, team_obj_dic[opposite_ha].trueskill
         )
         formatted_data = pd.DataFrame.from_records(team_data_dic[ha], index=[0])
-        team_obj_dic[ha].games = pd.concat([team_obj_dic[ha].games, formatted_data], ignore_index=True)
+        team_obj_dic[ha].games = pd.concat(
+            [team_obj_dic[ha].games, formatted_data], ignore_index=True
+        )
 
     # update ratings
-    if int(game_data["WL_HOME"])==1:
-        team_obj_dic["HOME"].trueskill, team_obj_dic["AWAY"].trueskill = trueskill.rate_1vs1(team_obj_dic["HOME"].trueskill, team_obj_dic["AWAY"].trueskill)
-        team_obj_dic["HOME"].elo, team_obj_dic["AWAY"].elo = elo_modul.ELO.rate_1vs1(team_obj_dic["HOME"].elo, team_obj_dic["AWAY"].elo)
+    if int(game_data["WL_HOME"]) == 1:
+        (
+            team_obj_dic["HOME"].trueskill,
+            team_obj_dic["AWAY"].trueskill,
+        ) = trueskill.rate_1vs1(
+            team_obj_dic["HOME"].trueskill, team_obj_dic["AWAY"].trueskill
+        )
+        team_obj_dic["HOME"].elo, team_obj_dic["AWAY"].elo = elo_modul.ELO.rate_1vs1(
+            team_obj_dic["HOME"].elo, team_obj_dic["AWAY"].elo
+        )
     else:
-        team_obj_dic["AWAY"].trueskill, team_obj_dic["HOME"].trueskill = trueskill.rate_1vs1(team_obj_dic["AWAY"].trueskill, team_obj_dic["HOME"].trueskill)
-        team_obj_dic["AWAY"].elo, team_obj_dic["HOME"].elo = elo_modul.ELO.rate_1vs1(team_obj_dic["AWAY"].elo, team_obj_dic["HOME"].elo)
+        (
+            team_obj_dic["AWAY"].trueskill,
+            team_obj_dic["HOME"].trueskill,
+        ) = trueskill.rate_1vs1(
+            team_obj_dic["AWAY"].trueskill, team_obj_dic["HOME"].trueskill
+        )
+        team_obj_dic["AWAY"].elo, team_obj_dic["HOME"].elo = elo_modul.ELO.rate_1vs1(
+            team_obj_dic["AWAY"].elo, team_obj_dic["HOME"].elo
+        )
 
 
 def fill_team_game_data(games):
@@ -179,7 +208,11 @@ def main(config):
     trueskill.setup(mu=30, draw_probability=0)
     games = get_game_data(connection)
     # initialize teams:
-    for team_name in set(np.concatenate((games["TEAM_NAME_HOME"].unique(), games["TEAM_NAME_AWAY"].unique()))):
+    for team_name in set(
+        np.concatenate(
+            (games["TEAM_NAME_HOME"].unique(), games["TEAM_NAME_AWAY"].unique())
+        )
+    ):
         NBATeam(team_name)
     fill_team_game_data(games)
     create_train_data(games, connection, config["create_train_data"]["feature_list"])

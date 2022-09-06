@@ -7,8 +7,8 @@ import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
-from loguru import logger
 from aquarel import load_theme
+from loguru import logger
 
 from nba_game_prediction import config_modul
 

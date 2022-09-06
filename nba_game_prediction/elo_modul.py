@@ -1,12 +1,5 @@
-import itertools
 import math
-import random
-from collections import Counter
 
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-import seaborn as sns
 import trueskill
 
 
@@ -27,6 +20,7 @@ def trueskill_win_probability(team1, team2):
     ts = trueskill.global_env()
     denom = math.sqrt(2 * (ts.beta * ts.beta) + sum_sigma)
     return ts.cdf(delta_mu / denom)
+
 
 class ELO:
     def __init__(self, elo):
@@ -75,6 +69,7 @@ class ELO:
         new_elo_a = ELO.calc_elo_change(elo_obj_a, elo_obj_b, a_won=True)
         new_elo_b = ELO.calc_elo_change(elo_obj_b, elo_obj_a, a_won=False)
         return new_elo_a, new_elo_b
+
 
 """"
 # TODO what to do with the stuff below?
