@@ -2,6 +2,7 @@ import math
 import os
 import random
 import sqlite3
+from typing import Any, Dict, List
 
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
@@ -13,11 +14,13 @@ from loguru import logger
 from nba_game_prediction import config_modul
 
 
-def add_random_probs(data):
+def add_random_probs(data: pd.DataFrame) -> None:
     data["random_winprob"] = data.apply(lambda row: random.uniform(0, 1), axis=1)
 
 
-def pred_vs_actual_prob_comparison(train_data, prob_key, out_dir):
+def pred_vs_actual_prob_comparison(
+    train_data: pd.DataFrame, prob_key: str, out_dir: str
+) -> None:
     bins = [0, 0.2, 0.3, 0.4, 0.45, 0.5, 0.55, 0.6, 0.7, 0.8, 1]
     pd.DataFrame()
     x_data = []
@@ -50,7 +53,7 @@ def pred_vs_actual_prob_comparison(train_data, prob_key, out_dir):
     fig.savefig(out_file_name)
 
 
-def feature_correlation(train_data, method, out_dir):
+def feature_correlation(train_data: pd.DataFrame, method: str, out_dir: str) -> None:
     """Produces heatmap from correlations
 
     Args:
@@ -74,7 +77,7 @@ def feature_correlation(train_data, method, out_dir):
     fig.savefig(out_file_name)
 
 
-def feature_pair_plot(train_data, out_dir):
+def feature_pair_plot(train_data: pd.DataFrame, out_dir: str) -> None:
     plot_data = train_data.drop(
         [
             "GAME_ID",
@@ -88,7 +91,6 @@ def feature_pair_plot(train_data, out_dir):
         ],
         axis=1,
     )
-    # fig, ax = plt.subplots(figsize=(20, 20))
     pair_grid = sns.pairplot(
         data=plot_data,
         hue="HOME_WL",
@@ -101,8 +103,10 @@ def feature_pair_plot(train_data, out_dir):
     pair_grid.savefig(out_file_name)
 
 
-def plot_team_skill(connection, algo, teams_to_plot, out_dir):
-    data = None
+def plot_team_skill(
+    connection: sqlite3.Connection, algo: str, teams_to_plot: List[str], out_dir: str
+) -> None:
+    data: pd.DataFrame = pd.DataFrame()
     for team_name in teams_to_plot:
         team_data = pd.read_sql(
             f"""
@@ -118,7 +122,7 @@ def plot_team_skill(connection, algo, teams_to_plot, out_dir):
             else row[f"AWAY_{algo}"],
             axis=1,
         )
-        if data is None:
+        if data.empty:
             data = team_data.loc[:, ["GAME_DATE", "team_name", algo]].copy()
         else:
             data = pd.concat(
@@ -135,14 +139,16 @@ def plot_team_skill(connection, algo, teams_to_plot, out_dir):
     fig.savefig(out_file_name)
 
 
-def plot_league_skill_distribution(connection, algo, out_dir):
+def plot_league_skill_distribution(
+    connection: sqlite3.Connection, algo: str, out_dir: str
+) -> None:
     team_names = pd.read_sql(
         "SELECT DISTINCT HOME_TEAM_NAME FROM train_data", connection
     )
     seasons = pd.read_sql("SELECT DISTINCT SEASON FROM train_data", connection)[
         "SEASON"
     ].tolist()
-    season_dict = {"season": [], f"{algo}": []}
+    season_dict: Dict[str, List[Any]] = {"season": [], f"{algo}": []}
     for season in seasons:
         for team_name in team_names["HOME_TEAM_NAME"]:
             team_data = pd.read_sql(
@@ -200,7 +206,7 @@ def plot_league_skill_distribution(connection, algo, out_dir):
     g.savefig(out_file_name)
 
 
-def main(config):
+def main(config: Dict[str, Any]) -> None:
     theme = load_theme("arctic_dark").set_overrides({"font.family": "monospace"})
     theme.apply()
     connection = sqlite3.connect(config["sql_db_path"])

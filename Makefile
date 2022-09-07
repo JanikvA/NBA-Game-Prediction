@@ -3,6 +3,7 @@
 full: lint format tests
 
 lint:
+	mypy nba_game_prediction/ --config-file pyproject.toml
 	pylama -o pyproject.toml
 
 format:

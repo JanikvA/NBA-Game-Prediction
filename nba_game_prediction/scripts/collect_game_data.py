@@ -8,7 +8,7 @@ from nba_api.stats.endpoints import leaguegamefinder
 from nba_game_prediction import config_modul
 
 
-def combine_team_games(df):
+def combine_team_games(df: pd.DataFrame) -> pd.DataFrame:
     """Combine a TEAM_ID-GAME_ID unique table into rows by game. Slow.
     From: https://github.com/swar/nba_api/blob/master/docs/examples/Finding%20Games.ipynb
 
@@ -34,7 +34,7 @@ def combine_team_games(df):
     return result
 
 
-def main(config):
+def main(config: dict) -> None:
     all_games = pd.DataFrame()
     for season in config["collect_game_data"]["seasons"]:
         logger.info(f"Collecting game data for {season}")

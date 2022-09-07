@@ -1,5 +1,6 @@
 import datetime
 import sqlite3
+from typing import Any, Dict, List
 
 import numpy as np
 import pandas as pd
@@ -11,9 +12,9 @@ from nba_game_prediction import config_modul, elo_modul
 
 
 class NBATeam:
-    nba_teams = {}
-    home_away = ["HOME", "AWAY"]
-    team_stats = [
+    nba_teams: Dict[str, Any] = {}
+    home_away: List[str] = ["HOME", "AWAY"]
+    team_stats: List[str] = [
         "PTS",
         "FGM",
         "FGA",
@@ -35,13 +36,7 @@ class NBATeam:
         "PLUS_MINUS",
     ]
 
-    @classmethod
-    def get_opposite_home_away(cls, home_away):
-        if home_away not in cls.home_away:
-            raise Exception(f"{home_away} has to be in {cls.home_away}")
-        return "HOME" if home_away == "AWAY" else "AWAY"
-
-    def __init__(self, name):
+    def __init__(self, name: str) -> None:
         self.name = name
         self.games = pd.DataFrame()
         self.elo = 1400
@@ -51,7 +46,9 @@ class NBATeam:
         else:
             NBATeam.nba_teams[self.name] = self
 
-    def get_stats_between_dates(self, from_date, to_date):
+    def get_stats_between_dates(
+        self, from_date: datetime.datetime, to_date: datetime.datetime
+    ) -> Dict[str, Any]:
         selected_games = self.games[
             (self.games.index < to_date) & (self.games.index > from_date)
         ]
@@ -60,7 +57,9 @@ class NBATeam:
             data[k + "_mean"] = data.pop(k)
         return data
 
-    def get_stats_for_date(self, date, games_back=10):
+    def get_stats_for_date(
+        self, date: datetime.datetime, games_back: int = 10
+    ) -> Dict[str, Any]:
         last_ten_games = self.get_last_N_games(date, games_back)
         data = last_ten_games.mean(numeric_only=True).to_dict()
         for k in list(data.keys()):
@@ -81,14 +80,22 @@ class NBATeam:
         return data
 
     # TODO this is inefficient
-    def get_last_N_games(self, date, n_games=10):
+    def get_last_N_games(
+        self, date: datetime.datetime, n_games: int = 10
+    ) -> pd.DataFrame:
         games_before = self.games[self.games.index < date]
         return games_before.head(n_games)
 
+    @classmethod
+    def get_opposite_home_away(cls, home_away: str) -> str:
+        if home_away not in cls.home_away:
+            raise Exception(f"{home_away} has to be in {cls.home_away}")
+        return "HOME" if home_away == "AWAY" else "AWAY"
 
-def extract_game_data(game_data):
-    team_data_dic = {ha: {} for ha in NBATeam.home_away}
-    team_obj_dic = {
+
+def extract_game_data(game_data: pd.DataFrame) -> None:
+    team_data_dic: Dict[str, Dict] = {ha: {} for ha in NBATeam.home_away}
+    team_obj_dic: Dict[str, NBATeam] = {
         ha: NBATeam.nba_teams[game_data[f"TEAM_NAME_{ha}"]] for ha in NBATeam.home_away
     }
 
@@ -150,7 +157,7 @@ def extract_game_data(game_data):
         )
 
 
-def fill_team_game_data(games):
+def fill_team_game_data(games: pd.DataFrame) -> None:
     logger.info(f"Loading {len(games)} games for {len(NBATeam.nba_teams)} teams")
     with Progress() as progress:
         task = progress.add_task("[green]Loading game data...", total=len(games))
@@ -161,7 +168,9 @@ def fill_team_game_data(games):
         team.games = team.games.set_index("GAME_DATE")
 
 
-def get_train_data_from_game(game, feature_list):
+def get_train_data_from_game(
+    game: pd.DataFrame, feature_list: List[str]
+) -> Dict[str, Any]:
     tmp_dic = {}
     train_data_dict = {}
     for ha in NBATeam.home_away:
@@ -178,7 +187,9 @@ def get_train_data_from_game(game, feature_list):
     return train_data_dict
 
 
-def create_train_data(games, sql_db_connection, feature_list):
+def create_train_data(
+    games: pd.DataFrame, sql_db_connection: sqlite3.Connection, feature_list: List[str]
+) -> None:
     train_data = pd.DataFrame()
     logger.info(f"Transforming data into trainings data for {len(games)} games.")
     with Progress() as progress:
@@ -191,7 +202,7 @@ def create_train_data(games, sql_db_connection, feature_list):
     train_data.to_sql("train_data", sql_db_connection, if_exists="replace", index=False)
 
 
-def get_game_data(sql_db_connection):
+def get_game_data(sql_db_connection: sqlite3.Connection) -> pd.DataFrame:
     games = pd.read_sql("SELECT * from NBA_games", sql_db_connection)
     games["GAME_DATE"] = pd.to_datetime(games["GAME_DATE"])
     games = games.set_index("GAME_DATE")
@@ -205,7 +216,7 @@ def get_game_data(sql_db_connection):
     return games
 
 
-def main(config):
+def main(config: Dict[str, Any]) -> None:
     connection = sqlite3.connect(config["sql_db_path"])
     trueskill.setup(mu=30, draw_probability=0)
     games = get_game_data(connection)

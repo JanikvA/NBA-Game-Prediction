@@ -1,5 +1,6 @@
 import os
 import sqlite3
+from typing import Any, Dict
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -11,7 +12,7 @@ from sklearn.neural_network import MLPClassifier
 from nba_game_prediction import config_modul
 
 
-def main(config):
+def main(config: Dict[str, Any]) -> None:
     connection = sqlite3.connect(config["sql_db_path"])
     data = pd.read_sql("SELECT * from train_data", connection)
     connection.close()
