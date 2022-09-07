@@ -10,11 +10,14 @@ jobs:
           command: |
             curl -sSL https://install.python-poetry.org | python3 -
             poetry install
+      # - run:
+      #     name: Run tests
+      #     command: |
+      #       poetry shell
+      #       pytest
       - run:
           name: Run tests
-          command: |
-            poetry shell
-            pytest
+          command: poetry run python pytest
       # - setup_remote_docker:
       #     docker_layer_caching: true
       # - run:
