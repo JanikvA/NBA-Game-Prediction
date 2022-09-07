@@ -5,7 +5,7 @@ jobs:
   build-and-test:
     executor:
       name: python/default
-      tag: 3.10
+      tag: "3.10"
     steps:
       - checkout
       - python/install-packages:
