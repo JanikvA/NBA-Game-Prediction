@@ -53,7 +53,7 @@ class NBATeam:
 
     def get_stats_between_dates(self, from_date, to_date):
         selected_games = self.games[
-            (self.games["GAME_DATE"] < to_date) & (self.games["GAME_DATE"] > from_date)
+            (self.games.index < to_date) & (self.games.index > from_date)
         ]
         data = selected_games.mean(numeric_only=True).to_dict()
         for k in list(data.keys()):
@@ -65,13 +65,11 @@ class NBATeam:
         data = last_ten_games.mean(numeric_only=True).to_dict()
         for k in list(data.keys()):
             data[k + f"_{games_back}G"] = data.pop(k)
-        if self.games[self.games["GAME_DATE"] == date].empty:
+        if date not in self.games.index:
             logger.warning(f"No Game was played on the given date ({date})!")
         else:
             day_before = date - datetime.timedelta(days=1)
-            data["is_back_to_back"] = int(
-                not self.games[self.games["GAME_DATE"] == day_before].empty
-            )
+            data["is_back_to_back"] = int(day_before in self.games)
             for key in [
                 "ELO",
                 "ELO_winprob",
@@ -79,12 +77,12 @@ class NBATeam:
                 "trueskill_sigma",
                 "trueskill_winprob",
             ]:
-                data[key] = self.games[self.games["GAME_DATE"] == date][key].values[0]
+                data[key] = self.games.loc[date][key]
         return data
 
     # TODO this is inefficient
     def get_last_N_games(self, date, n_games=10):
-        games_before = self.games[self.games["GAME_DATE"] < date]
+        games_before = self.games[self.games.index < date]
         return games_before.head(n_games)
 
 
@@ -101,7 +99,8 @@ def extract_game_data(game_data):
 
     for ha in NBATeam.home_away:
         opposite_ha = NBATeam.get_opposite_home_away(ha)
-        for uniq in ["SEASON_ID", "GAME_ID", "GAME_DATE", "SEASON_TYPE", "SEASON"]:
+        team_data_dic[ha]["GAME_DATE"] = game_data.name
+        for uniq in ["SEASON_ID", "GAME_ID", "SEASON_TYPE", "SEASON"]:
             team_data_dic[ha][uniq] = game_data[uniq]
         for team_stat in NBATeam.team_stats:
             team_data_dic[ha][team_stat] = game_data[team_stat + "_" + ha]
@@ -158,6 +157,8 @@ def fill_team_game_data(games):
         for index, row in games.iterrows():
             extract_game_data(row)
             progress.update(task, advance=1)
+    for team_name, team in NBATeam.nba_teams.items():
+        team.games = team.games.set_index("GAME_DATE")
 
 
 def get_train_data_from_game(game, feature_list):
@@ -167,14 +168,13 @@ def get_train_data_from_game(game, feature_list):
         team = NBATeam.nba_teams[game[f"TEAM_NAME_{ha}"]]
         train_data_dict[f"{ha}_TEAM_NAME"] = game[f"TEAM_NAME_{ha}"]
         train_data_dict[f"{ha}_WL"] = int(game[f"WL_{ha}"])
-        tmp_dic[ha] = team.get_stats_for_date(game["GAME_DATE"])
+        tmp_dic[ha] = team.get_stats_for_date(game.name)
         for feature in feature_list:
-
             train_data_dict[ha + "_" + feature] = tmp_dic[ha][feature]
     for simple_int_feature in ["SEASON_ID", "SEASON", "GAME_ID"]:
         train_data_dict[simple_int_feature] = int(game[simple_int_feature])
     train_data_dict["is_Playoffs"] = int(game["SEASON_TYPE"] == "Playoffs")
-    train_data_dict["GAME_DATE"] = game["GAME_DATE"]
+    train_data_dict["GAME_DATE"] = game.name
     return train_data_dict
 
 
@@ -194,6 +194,8 @@ def create_train_data(games, sql_db_connection, feature_list):
 def get_game_data(sql_db_connection):
     games = pd.read_sql("SELECT * from NBA_games", sql_db_connection)
     games["GAME_DATE"] = pd.to_datetime(games["GAME_DATE"])
+    games = games.set_index("GAME_DATE")
+    games = games.sort_index()
     games["WL_HOME"] = games.apply(
         lambda row: 1 if row["WL_HOME"] == "W" else 0, axis=1
     )

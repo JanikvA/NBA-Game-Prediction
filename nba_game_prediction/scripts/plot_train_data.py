@@ -43,11 +43,11 @@ def pred_vs_actual_prob_comparison(train_data, prob_key, out_dir):
         )
         y_err.append(unc / y_pred_data[-1])
         ratio.append(y_actual_data[-1] / y_pred_data[-1])
-    plt.errorbar(x=x_data, y=ratio, yerr=y_err, color="black")
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.errorbar(x=x_data, y=ratio, yerr=y_err, color="black")
     out_file_name = os.path.join(out_dir, "probability_comparison_" + prob_key + ".png")
     logger.info(f"Saving plot to: {out_file_name}")
-    plt.savefig(out_file_name)
-    plt.clf()
+    fig.savefig(out_file_name)
 
 
 def feature_correlation(train_data, method, out_dir):
@@ -88,11 +88,17 @@ def feature_pair_plot(train_data, out_dir):
         ],
         axis=1,
     )
-    sns.pairplot(data=plot_data, hue="HOME_WL", diag_kws={"common_norm": False})
+    # fig, ax = plt.subplots(figsize=(20, 20))
+    pair_grid = sns.pairplot(
+        data=plot_data,
+        hue="HOME_WL",
+        diag_kws={"common_norm": False},
+        height=3,
+        aspect=1,
+    )
     out_file_name = os.path.join(out_dir, "feature_pair_plot.png")
     logger.info(f"Saving plot to: {out_file_name}")
-    plt.savefig(out_file_name)
-    plt.clf()
+    pair_grid.savefig(out_file_name)
 
 
 def plot_team_skill(connection, algo, teams_to_plot, out_dir):
@@ -120,13 +126,13 @@ def plot_team_skill(connection, algo, teams_to_plot, out_dir):
                 ignore_index=True,
             )
     data["GAME_DATE"] = pd.to_datetime(data["GAME_DATE"])
-    ax = sns.lineplot(data=data, x="GAME_DATE", y=algo, hue="team_name")
+    fig, ax = plt.subplots(figsize=(10, 6))
+    sns.lineplot(data=data, x="GAME_DATE", y=algo, hue="team_name", ax=ax)
     myFmt = mdates.DateFormatter("%Y")
     ax.xaxis.set_major_formatter(myFmt)
     out_file_name = os.path.join(out_dir, f"team_{algo}_plot.png")
     logger.info(f"Saving plot to: {out_file_name}")
-    plt.savefig(out_file_name)
-    plt.clf()
+    fig.savefig(out_file_name)
 
 
 def plot_league_skill_distribution(connection, algo, out_dir):
@@ -191,12 +197,11 @@ def plot_league_skill_distribution(connection, algo, out_dir):
 
     out_file_name = os.path.join(out_dir, f"season_{algo}_plot.png")
     logger.info(f"Saving plot to: {out_file_name}")
-    plt.savefig(out_file_name)
-    plt.clf()
+    g.savefig(out_file_name)
 
 
 def main(config):
-    theme = load_theme("arctic_dark")
+    theme = load_theme("arctic_dark").set_overrides({"font.family": "monospace"})
     theme.apply()
     connection = sqlite3.connect(config["sql_db_path"])
     train_data = pd.read_sql("SELECT * from train_data", connection)
