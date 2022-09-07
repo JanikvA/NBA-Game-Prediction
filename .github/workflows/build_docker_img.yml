@@ -12,6 +12,6 @@ jobs:
           username: ${{ secrets.DOCKERHUB_ACCOUNT_NAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Build the tagged Docker image
-        run: docker build . --file Dockerfile --tag janikva/nba-game-prediction:latest
+        run: docker build . --file Dockerfile --tag janikvapp/nba-game-prediction:latest
       - name: Push the tagged Docker image
-        run: docker push janikva/nba-game-prediction:latest
+        run: docker push janikvapp/nba-game-prediction:latest
