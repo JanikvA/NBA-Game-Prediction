@@ -3,6 +3,7 @@ orbs:
   python: circleci/python@2.0.3
 jobs:
   build-and-test:
+    resource_class: medium
     executor:
       name: python/default
       tag: "3.10"
@@ -12,7 +13,8 @@ jobs:
           pkg-manager: poetry
       - run:
           command: |
-            poetry run pytest
+            poetry run nba_game_prediction/scripts/collect_game_data.py
+            # poetry run pytest
           name: Running Tests
 
     # docker:

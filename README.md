@@ -13,4 +13,12 @@ poetry shell
 pre-commit install
 ```
 
+## Publishing to DockerHub
+
+Needs github-cli (e.g. from AUR)
+
+```bash
+gh workflow run publish-docker
+```
+
 ## Getting Started
