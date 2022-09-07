@@ -1,9 +1,12 @@
 import math
+from typing import Tuple
 
 import trueskill
 
 
-def trueskill_win_probability(team1, team2):
+def trueskill_win_probability(
+    team1: trueskill.Rating, team2: trueskill.Rating
+) -> float:
     """Calculate probability for team1 to win based on trueskill. For more
     information see https://trueskill.org/#trueskill.quality_1vs1 and
     https://github.com/sublee/trueskill/issues/1#issuecomment-149762508.
@@ -23,15 +26,15 @@ def trueskill_win_probability(team1, team2):
 
 
 class ELO:
-    def __init__(self, elo):
-        self.elo
+    def __init__(self, elo: float) -> None:
+        self.elo = elo
 
     @classmethod
-    def Rating(elo=1400):
+    def Rating(cls, elo: float = 1400) -> float:
         return elo
 
     @classmethod
-    def expected_Ea(cls, elo_a, elo_b):
+    def expected_Ea(cls, elo_a: float, elo_b: float) -> float:
         """Represents the win probability for player a.
 
         Args:
@@ -44,7 +47,9 @@ class ELO:
         return 1 / (1 + 10 ** ((elo_b - elo_a) / 400))
 
     @classmethod
-    def calc_elo_change(cls, elo_a, elo_b, a_won, a_k=20):
+    def calc_elo_change(
+        cls, elo_a: float, elo_b: float, a_won: float, a_k: float = 20
+    ) -> float:
         """Calculate elo change for player a base on the standard Elo rating used
         in chess https://en.wikipedia.org/wiki/Elo_rating_system.
 
@@ -65,7 +70,17 @@ class ELO:
         return new_elo_a
 
     @classmethod
-    def rate_1vs1(cls, elo_obj_a, elo_obj_b):
+    def rate_1vs1(cls, elo_obj_a: float, elo_obj_b: float) -> Tuple[float, float]:
+        """Calculate updated elo ratings for both player where
+        Player A, i.e. the first elo mentioned, won the match.
+
+        Args:
+            elo_obj_a (float): elo rating of player A. The winning player
+            elo_obj_b (float): elo rating of player B. The losing player
+
+        Returns:
+            Tuple: the new elo of Player A, new elo of Player B
+        """
         new_elo_a = ELO.calc_elo_change(elo_obj_a, elo_obj_b, a_won=True)
         new_elo_b = ELO.calc_elo_change(elo_obj_b, elo_obj_a, a_won=False)
         return new_elo_a, new_elo_b
