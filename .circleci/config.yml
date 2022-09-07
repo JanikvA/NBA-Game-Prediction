@@ -1,23 +1,33 @@
 version: 2.1
+orbs:
+  python: circleci/python@2.0.3
 jobs:
   build-and-test:
-    docker:
-      - image: cimg/python:3.10.6
+    executor: python/default
     steps:
       - checkout
+      - python/install-packages:
+          pkg-manager: poetry
       - run:
-          name: Install packages
           command: |
-            curl -sSL https://install.python-poetry.org | python3 -
-            poetry install
-      # - run:
-      #     name: Run tests
-      #     command: |
-      #       poetry shell
-      #       pytest
-      - run:
-          name: Run tests
-          command: python pytest
+            poetry run pytest
+          name: Running Tests
+
+    # docker:
+    #   - image: cimg/python:3.10.6
+    # steps:
+    #   - checkout
+    #   - run:
+    #       name: Install packages
+    #       command: |
+    #         curl -sSL https://install.python-poetry.org | python3 -
+    #         poetry install
+    #   - run:
+    #       name: Run tests
+    #       command: |
+    #         poetry shell
+    #         pytest
+
       # - setup_remote_docker:
       #     docker_layer_caching: true
       # - run:
