@@ -31,6 +31,7 @@ def setup(config: Dict[str, Any]) -> None:
 
 
 def load_config(path_to_config: str) -> Dict[str, Any]:
+    logger.info(f"Loading config from {path_to_config}")
     with open(path_to_config, "r") as config_file:
         config = yaml.safe_load(config_file)
     setup(config)

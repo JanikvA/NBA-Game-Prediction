@@ -52,6 +52,7 @@ def main(config: dict) -> None:
 
     combined_games = combine_team_games(all_games)
 
+    logger.info(f"Saving {len(all_games)} collected games to {config['sql_db_path']}")
     sql_connection = sqlite3.connect(config["sql_db_path"])
     all_games.to_sql(
         "NBA_games_per_team", sql_connection, if_exists="replace", index=False

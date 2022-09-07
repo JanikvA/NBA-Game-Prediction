@@ -1,7 +1,7 @@
 logging_level: DEBUG
 data_dir: data
-output_dir: output
 sql_db_path: data/nba_games.db
+output_dir: output
 
 collect_game_data:
   seasons:

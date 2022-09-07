@@ -79,7 +79,6 @@ class NBATeam:
                 data[key] = self.games.loc[date][key]
         return data
 
-    # TODO this is inefficient
     def get_last_N_games(
         self, date: datetime.datetime, n_games: int = 10
     ) -> pd.DataFrame:
@@ -93,6 +92,7 @@ class NBATeam:
         return "HOME" if home_away == "AWAY" else "AWAY"
 
 
+# TODO optimize
 def extract_game_data(game_data: pd.DataFrame) -> None:
     team_data_dic: Dict[str, Dict] = {ha: {} for ha in NBATeam.home_away}
     team_obj_dic: Dict[str, NBATeam] = {

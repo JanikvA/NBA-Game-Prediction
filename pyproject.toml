@@ -48,9 +48,12 @@ addopts = "--cov=nba_game_prediction"
 testpaths =  "tests"
 pythonpath = "nba_game_prediction"
 filterwarnings = ["ignore::DeprecationWarning:seaborn.*:","ignore::DeprecationWarning:distutils.*:"]
-# markers = [
-# 	"integration: Integration test. These can be slow (deselect with '-m \"not integration\"')"
-# ]
+markers = [
+	"integration: Integration test. These can be slow (deselect with '-m \"not integration\"')"
+]
+
+[tool.isort]
+profile = "black"
 
 [tool.mypy]
 ignore_missing_imports = true

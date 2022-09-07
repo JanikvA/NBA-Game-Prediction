@@ -13,4 +13,7 @@ format:
 	docformatter --in-place **/*.py
 
 tests:
-	pytest
+	pytest -m "not integration"
+
+integration:
+	pytest -m "integration" --durations=5

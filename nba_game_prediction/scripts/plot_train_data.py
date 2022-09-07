@@ -77,6 +77,7 @@ def feature_correlation(train_data: pd.DataFrame, method: str, out_dir: str) -> 
     fig.savefig(out_file_name)
 
 
+# TODO this is slow. make it faster
 def feature_pair_plot(train_data: pd.DataFrame, out_dir: str) -> None:
     plot_data = train_data.drop(
         [
@@ -116,7 +117,6 @@ def plot_team_skill(
             connection,
         )
         team_data["team_name"] = team_name
-
         team_data[algo] = team_data.apply(
             lambda row: row[f"HOME_{algo}"]
             if row["HOME_TEAM_NAME"] == team_name

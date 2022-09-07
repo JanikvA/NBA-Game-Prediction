@@ -1,10 +1,29 @@
+logging_level: DEBUG
 data_dir: tests/test_output/data
+sql_db_path: tests/test_output/data/nba_games.db
 output_dir: tests/test_output/output
 
 collect_game_data:
   seasons:
     - 2006-07
     - 2007-08
+  season_types:
+    - Regular Season
+    - Playoffs
 
-  raw_output_name: game_data.csv
-  combined_output_name: combined_game_data.csv
+create_train_data:
+  # HOME_WL, TEAM_NAME, GAME_DATE, GAME_ID, is_Playoffs, and SEASON_ID will always be saved
+  # the following features will be saved for both the HOME and the AWAY team
+  feature_list:
+    - trueskill_winprob
+    - trueskill_mu
+    - trueskill_sigma
+    - ELO_winprob
+    - ELO
+    - is_back_to_back
+
+plot_train_data:
+  teams_to_plot:
+    - Golden State Warriors
+    - Cleveland Cavaliers
+    - Los Angeles Lakers
