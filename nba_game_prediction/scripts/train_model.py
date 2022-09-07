@@ -17,6 +17,13 @@ def main(config: Dict[str, Any]) -> None:
     data = pd.read_sql("SELECT * from train_data", connection)
     connection.close()
     data = data.dropna(how="any")
+    # The ELO/trueskill ratings need some phase in the beginning to have meaningful values
+    # which is why the first 1000 games of the training data are being removed here
+    skip_first_n = 1000
+    if len(data) < skip_first_n:
+        skip_first_n = int(len(data) / 2)
+    logger.info(f"Dropping the first {skip_first_n} of the total {len(data)} games")
+    data = data[skip_first_n:]
     y = data["HOME_WL"]
     data["ELO_difference"] = data.apply(
         lambda row: row["HOME_ELO"] - row["AWAY_ELO"], axis=1
@@ -53,6 +60,9 @@ def main(config: Dict[str, Any]) -> None:
     x_train, x_test, y_train, y_test = model_selection.train_test_split(
         x, y, test_size=0.2
     )
+    logger.info(
+        f"Using {len(y_train)} games for training and {len(y_test)} games for testing."
+    )
     scaler = preprocessing.StandardScaler().fit(x_train)
     x_train = scaler.transform(x_train)
     x_test = scaler.transform(x_test)
@@ -73,8 +83,6 @@ def main(config: Dict[str, Any]) -> None:
     for n, clf in enumerate(classifiers):
         clf.fit(x_train, y_train)
         prediction = clf.predict(x_test)
-        prediction_prob = clf.predict_proba(x_test)
-        logger.info(prediction_prob.shape)
         train_prediction = clf.predict(x_train)
         train_acc = metrics.accuracy_score(y_train, train_prediction)
         test_acc = metrics.accuracy_score(y_test, prediction)

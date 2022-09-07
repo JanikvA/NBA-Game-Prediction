@@ -12,6 +12,8 @@ from nba_game_prediction import config_modul, elo_modul
 
 
 class NBATeam:
+    """Class to handle NBA teams and the data associated to them"""
+
     nba_teams: Dict[str, Any] = {}
     home_away: List[str] = ["HOME", "AWAY"]
     team_stats: List[str] = [
@@ -37,6 +39,15 @@ class NBATeam:
     ]
 
     def __init__(self, name: str) -> None:
+        """Creates a NBATeam object and initalizes important attributes.
+        The object will also be added to the NBATeam.nba_teams dict
+
+        Args:
+            name (str): Name of the NBA team
+
+        Raises:
+            Exception: If a team with the same name is already in the NBATeam.nba_teams dict.
+        """
         self.name = name
         self.games = pd.DataFrame()
         self.elo = 1400
@@ -49,6 +60,15 @@ class NBATeam:
     def get_stats_between_dates(
         self, from_date: datetime.datetime, to_date: datetime.datetime
     ) -> Dict[str, Any]:
+        """Calculates the mean for numeric values and all games played between two dates
+
+        Args:
+            from_date (datetime.datetime): start date
+            to_date (datetime.datetime): end date
+
+        Returns:
+            Dict[str, Any]: key: stat name - value: mean for numeric values
+        """
         selected_games = self.games[
             (self.games.index < to_date) & (self.games.index > from_date)
         ]
@@ -60,6 +80,16 @@ class NBATeam:
     def get_stats_for_date(
         self, date: datetime.datetime, games_back: int = 10
     ) -> Dict[str, Any]:
+        """Get the team data for a specific date
+
+        Args:
+            date (datetime.datetime): which date to look at
+            games_back (int, optional): For some stats the mean over
+            {games_back} is calculated. Defaults to 10.
+
+        Returns:
+            Dict[str, Any]: key: stat name - value: value
+        """
         last_ten_games = self.get_last_N_games(date, games_back)
         data = last_ten_games.mean(numeric_only=True).to_dict()
         for k in list(data.keys()):
@@ -82,18 +112,44 @@ class NBATeam:
     def get_last_N_games(
         self, date: datetime.datetime, n_games: int = 10
     ) -> pd.DataFrame:
+        """Get data of last games played
+
+        Args:
+            date (datetime.datetime): only games before this date are considered
+            n_games (int, optional): Get the last {n_games} played before {date}. Defaults to 10.
+
+        Returns:
+            pd.DataFrame: games fulfilling the requirements
+        """
         games_before = self.games[self.games.index < date]
         return games_before.head(n_games)
 
     @classmethod
     def get_opposite_home_away(cls, home_away: str) -> str:
-        if home_away not in cls.home_away:
-            raise Exception(f"{home_away} has to be in {cls.home_away}")
+        """Turns 'HOME' into 'AWAY' and 'AWAY' into 'HOME'
+
+        Args:
+            home_away (str): either 'HOME' or 'AWAY'
+
+        Raises:
+            Exception: if {home_away} is not in ['HOME', 'AWAY']
+
+        Returns:
+            str: Returns the opposite of {home_away}
+        """
+        if home_away not in ["HOME", "AWAY"]:
+            raise Exception(f"{home_away} has to be either 'HOME' or 'AWAY'")
         return "HOME" if home_away == "AWAY" else "AWAY"
 
 
 # TODO optimize
 def extract_game_data(game_data: pd.DataFrame) -> None:
+    """Extracts relevant data from the game and adds the
+    information to the data of both the home and away team
+
+    Args:
+        game_data (pd.DataFrame): Data of the game to be analyzed
+    """
     team_data_dic: Dict[str, Dict] = {ha: {} for ha in NBATeam.home_away}
     team_obj_dic: Dict[str, NBATeam] = {
         ha: NBATeam.nba_teams[game_data[f"TEAM_NAME_{ha}"]] for ha in NBATeam.home_away
@@ -158,6 +214,12 @@ def extract_game_data(game_data: pd.DataFrame) -> None:
 
 
 def fill_team_game_data(games: pd.DataFrame) -> None:
+    """Adds the statistics from all games
+    provided to their respective teams
+
+    Args:
+        games (pd.DataFrame): Games to be analyzed
+    """
     logger.info(f"Loading {len(games)} games for {len(NBATeam.nba_teams)} teams")
     with Progress() as progress:
         task = progress.add_task("[green]Loading game data...", total=len(games))
@@ -171,6 +233,15 @@ def fill_team_game_data(games: pd.DataFrame) -> None:
 def get_train_data_from_game(
     game: pd.DataFrame, feature_list: List[str]
 ) -> Dict[str, Any]:
+    """Get the features relevant for model training from a game
+
+    Args:
+        game (pd.DataFrame): data of the game
+        feature_list (List[str]): list of important features specified in the config file
+
+    Returns:
+        Dict[str, Any]: key: feature - value: value
+    """
     tmp_dic = {}
     train_data_dict = {}
     for ha in NBATeam.home_away:
@@ -190,6 +261,14 @@ def get_train_data_from_game(
 def create_train_data(
     games: pd.DataFrame, sql_db_connection: sqlite3.Connection, feature_list: List[str]
 ) -> None:
+    """Creates and saves the data used for training the models
+
+    Args:
+        games (pd.DataFrame): All games that should be used
+        sql_db_connection (sqlite3.Connection): Connection to
+        the SQL database to which the data should be saved
+        feature_list (List[str]): important features defined in the config file
+    """
     train_data = pd.DataFrame()
     logger.info(f"Transforming data into trainings data for {len(games)} games.")
     with Progress() as progress:
@@ -203,6 +282,14 @@ def create_train_data(
 
 
 def get_game_data(sql_db_connection: sqlite3.Connection) -> pd.DataFrame:
+    """Extract the game data from the SQL database created by the collect_game_data.py
+
+    Args:
+        sql_db_connection (sqlite3.Connection): Connection to the SQL database
+
+    Returns:
+        pd.DataFrame: Contains data for all games
+    """
     games = pd.read_sql("SELECT * from NBA_games", sql_db_connection)
     games["GAME_DATE"] = pd.to_datetime(games["GAME_DATE"])
     games = games.set_index("GAME_DATE")
@@ -217,6 +304,11 @@ def get_game_data(sql_db_connection: sqlite3.Connection) -> pd.DataFrame:
 
 
 def main(config: Dict[str, Any]) -> None:
+    """Creates the data used in the training and saves it to the SQL data base
+
+    Args:
+        config (Dict[str, Any]): config
+    """
     connection = sqlite3.connect(config["sql_db_path"])
     trueskill.setup(mu=30, draw_probability=0)
     games = get_game_data(connection)

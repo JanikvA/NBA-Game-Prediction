@@ -21,8 +21,18 @@ def add_random_probs(data: pd.DataFrame) -> None:
 def pred_vs_actual_prob_comparison(
     train_data: pd.DataFrame, prob_key: str, out_dir: str
 ) -> None:
+    """Sorts games into bins based on the probability that the home team wins.
+    Then calculates the ratio of the actual win rate for these games and the bin center.
+    For a perfect algo this ratio should be close to 1.
+    The errorbars are calculated using Poisson error and the standard propagation of uncertainty
+
+    Args:
+        train_data (pd.DataFrame): Data for the training
+        prob_key (str): Which probability to be plotted, e.g. HOME_ELO_winprob,
+        HOME_trueskill_winprob or random_winprob
+        out_dir (str): The plots will be saved to this directory
+    """
     bins = [0, 0.2, 0.3, 0.4, 0.45, 0.5, 0.55, 0.6, 0.7, 0.8, 1]
-    pd.DataFrame()
     x_data = []
     y_pred_data = []
     y_actual_data = []
@@ -54,12 +64,12 @@ def pred_vs_actual_prob_comparison(
 
 
 def feature_correlation(train_data: pd.DataFrame, method: str, out_dir: str) -> None:
-    """Produces heatmap from correlations
+    """Creates heatmap of correlation for input features
 
     Args:
-        train_data (pandas.DataFrame): dataframe with data
-        method (string): defines which method for calculating the
-                         correlation is used (choices: pearson, kendall, spearman)
+        train_data (pd.DataFrame): trainings data
+        method (str): Which correlation method to use. (Choices: "pearson", "kendall", "spearman")
+        out_dir (str): plots will be saved to the path of this directory
     """
     plot_data = train_data.drop(
         [
@@ -79,6 +89,13 @@ def feature_correlation(train_data: pd.DataFrame, method: str, out_dir: str) -> 
 
 # TODO this is slow. make it faster
 def feature_pair_plot(train_data: pd.DataFrame, out_dir: str) -> None:
+    """Seaborn pairplot of features. Correlation between
+    features and separation power for HOME_WL can be observed
+
+    Args:
+        train_data (pd.DataFrame): trainings data
+        out_dir (str): plots will be saved to the path of this directory
+    """
     plot_data = train_data.drop(
         [
             "GAME_ID",
@@ -107,6 +124,14 @@ def feature_pair_plot(train_data: pd.DataFrame, out_dir: str) -> None:
 def plot_team_skill(
     connection: sqlite3.Connection, algo: str, teams_to_plot: List[str], out_dir: str
 ) -> None:
+    """_summary_
+
+    Args:
+        connection (sqlite3.Connection): Connection to SQL database
+        algo (str): Which rating to plot, e.g. ELO or trueskill_mu
+        teams_to_plot (List[str]): List of team names which should be plotted
+        out_dir (str): plots will be saved to the path of this directory
+    """
     data: pd.DataFrame = pd.DataFrame()
     for team_name in teams_to_plot:
         team_data = pd.read_sql(
@@ -143,6 +168,15 @@ def plot_team_skill(
 def plot_league_skill_distribution(
     connection: sqlite3.Connection, algo: str, out_dir: str
 ) -> None:
+    """Plots the skill distribution for a given algo
+    and each season in the trianings data. The median is
+    indicated by a vertical red line.
+
+    Args:
+        connection (sqlite3.Connection): Connection to SQL database
+        algo (str): Which rating to plot, e.g. ELO or trueskill_mu
+        out_dir (str): plots will be saved to the path of this directory
+    """
     team_names = pd.read_sql(
         "SELECT DISTINCT HOME_TEAM_NAME FROM train_data", connection
     )
@@ -208,6 +242,11 @@ def plot_league_skill_distribution(
 
 
 def main(config: Dict[str, Any]) -> None:
+    """Creates plots from the training data
+
+    Args:
+        config (Dict[str, Any]): config
+    """
     theme = load_theme("arctic_dark").set_overrides({"font.family": "monospace"})
     theme.apply()
     connection = sqlite3.connect(config["sql_db_path"])

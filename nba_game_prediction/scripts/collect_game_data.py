@@ -35,6 +35,11 @@ def combine_team_games(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def main(config: dict) -> None:
+    """Collect data for NBA games using the nba_api package
+
+    Args:
+        config (dict): config
+    """
     all_games = pd.DataFrame()
     for season in config["collect_game_data"]["seasons"]:
         logger.info(f"Collecting game data for {season}")
