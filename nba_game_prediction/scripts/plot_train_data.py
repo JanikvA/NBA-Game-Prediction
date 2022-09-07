@@ -116,6 +116,7 @@ def plot_team_skill(
             connection,
         )
         team_data["team_name"] = team_name
+
         team_data[algo] = team_data.apply(
             lambda row: row[f"HOME_{algo}"]
             if row["HOME_TEAM_NAME"] == team_name
