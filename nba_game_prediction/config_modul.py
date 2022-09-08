@@ -54,6 +54,7 @@ def load_config(path_to_config: str) -> Dict[str, Any]:
     Returns:
         Dict[str, Any]: config
     """
+    logger.info(f"Working directory: {os.getcwd()}")
     logger.info(f"Loading config from {path_to_config}")
     with open(path_to_config, "r") as config_file:
         config = yaml.safe_load(config_file)

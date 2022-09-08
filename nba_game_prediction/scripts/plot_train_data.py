@@ -267,7 +267,7 @@ def main(config: Dict[str, Any]) -> None:
 
     for method in ["pearson", "kendall", "spearman"]:
         feature_correlation(train_data, method, config["output_dir"])
-    feature_pair_plot(train_data, config["output_dir"])
+    # feature_pair_plot(train_data, config["output_dir"])
     connection.close()
 
 

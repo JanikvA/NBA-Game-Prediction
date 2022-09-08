@@ -13,10 +13,10 @@ jobs:
           pkg-manager: poetry
       - run:
           command: |
-            poetry run python nba_game_prediction/scripts/collect_game_data.py
+            poetry run python -m pytest --version
           name: Running Tests
 
-            # poetry run pytest
+            # poetry run python nba_game_prediction/scripts/collect_game_data.py
     # docker:
     #   - image: cimg/python:3.10.6
     # steps:
