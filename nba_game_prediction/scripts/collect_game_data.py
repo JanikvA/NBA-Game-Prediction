@@ -48,6 +48,7 @@ def main(config: dict) -> None:
                 season_nullable=season,
                 league_id_nullable="00",
                 season_type_nullable=season_type,
+                timeout=300,
             )
             games = gamefinder.get_data_frames()[0]
             games["SEASON_TYPE"] = season_type
