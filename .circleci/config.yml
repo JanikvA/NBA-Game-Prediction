@@ -13,35 +13,9 @@ jobs:
           pkg-manager: poetry
       - run:
           command: |
-            poetry run python -m pytest --version
+            poetry run pytest
           name: Running Tests
 
-            # poetry run python nba_game_prediction/scripts/collect_game_data.py
-    # docker:
-    #   - image: cimg/python:3.10.6
-    # steps:
-    #   - checkout
-    #   - run:
-    #       name: Install packages
-    #       command: |
-    #         curl -sSL https://install.python-poetry.org | python3 -
-    #         poetry install
-    #   - run:
-    #       name: Run tests
-    #       command: |
-    #         poetry shell
-    #         pytest
-
-      # - setup_remote_docker:
-      #     docker_layer_caching: true
-      # - run:
-      #     name: Build and push Docker image
-      #     command: |
-      #       . helloworld/bin/activate
-      #       pyinstaller -F hello_world.py
-      #       docker build -t ariv3ra/$IMAGE_NAME:$TAG .
-      #       echo $DOCKER_PWD | docker login -u $DOCKER_LOGIN --password-stdin
-      #       docker push ariv3ra/$IMAGE_NAME:$TAG
 workflows:
   personal_workflow:
     jobs:

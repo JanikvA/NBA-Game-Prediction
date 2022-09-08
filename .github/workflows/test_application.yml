@@ -22,8 +22,11 @@ jobs:
     container: janikvapp/nba-game-prediction:latest
 
     steps:
-    - name: check version
-      run : poetry run pytest --version
     - name: Test with pytest
       run: |
         poetry run pytest
+    - name: Upload test outputs
+      uses: actions/upload-artifact@v3
+      with:
+        name: test_output
+        path: tests/test_output/
