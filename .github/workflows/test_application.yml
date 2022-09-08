@@ -1,30 +1,33 @@
 name: test-application
 on: push
 jobs:
-  publish-docker:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v1
-      - name: Login to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_ACCOUNT_NAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Build the tagged Docker image
-        run: docker build . --file Dockerfile --tag janikvapp/nba-game-prediction:latest
-      - name: Push the tagged Docker image
-        run: docker push janikvapp/nba-game-prediction:latest
+
+  # publish-docker:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v1
+  #     - name: Login to Docker Hub
+  #       uses: docker/login-action@v2
+  #       with:
+  #         username: ${{ secrets.DOCKERHUB_ACCOUNT_NAME }}
+  #         password: ${{ secrets.DOCKERHUB_TOKEN }}
+  #     - name: Build the tagged Docker image
+  #       run: docker build . --file Dockerfile --tag janikvapp/nba-game-prediction:latest
+  #     - name: Push the tagged Docker image
+  #       run: docker push janikvapp/nba-game-prediction:latest
 
   run-tests:
-    needs: publish-docker
+    # needs: publish-docker
     runs-on: ubuntu-latest
-    container: janikvapp/nba-game-prediction:latest
+    # container: janikvapp/nba-game-prediction:latest
 
     steps:
     - name: Test with pytest
       run: |
         poetry run pytest
+      with:
+        image: janikvapp/nba-game-prediction:latest
     - name: Upload test outputs
       uses: actions/upload-artifact@v3
       with:
