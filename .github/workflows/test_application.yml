@@ -24,10 +24,11 @@ jobs:
 
     steps:
     - name: Test with pytest
-      run: |
-        poetry run pytest
+      uses: addnab/docker-run-action@v3
       with:
         image: janikvapp/nba-game-prediction:latest
+        run: |
+          poetry run pytest
     - name: Upload test outputs
       uses: actions/upload-artifact@v3
       with:
