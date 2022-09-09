@@ -6,3 +6,4 @@ tests/test_output
 output/
 *.db
 .tags
+geckodriver.log

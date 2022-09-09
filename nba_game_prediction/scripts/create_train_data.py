@@ -50,7 +50,7 @@ class NBATeam:
         """
         self.name = name
         self.games = pd.DataFrame()
-        self.elo = 1400
+        self.elo: float = 1400.0
         self.trueskill = trueskill.Rating()
         if self.name in NBATeam.nba_teams:
             raise Exception(f"{self.name} is already in NBATeam.nba_teams!")

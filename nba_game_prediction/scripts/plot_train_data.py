@@ -18,6 +18,7 @@ def add_random_probs(data: pd.DataFrame) -> None:
     data["random_winprob"] = data.apply(lambda row: random.uniform(0, 1), axis=1)
 
 
+# FIXME should really be the mean of prediction probabilities for each bin and not the bin center
 def pred_vs_actual_prob_comparison(
     train_data: pd.DataFrame, prob_key: str, out_dir: str
 ) -> None:

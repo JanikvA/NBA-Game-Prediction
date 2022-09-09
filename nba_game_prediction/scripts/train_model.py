@@ -4,10 +4,10 @@ from typing import Any, Dict
 
 import matplotlib.pyplot as plt
 import pandas as pd
+import shap
+import xgboost as xgb
 from loguru import logger
 from sklearn import metrics, model_selection, preprocessing
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.neural_network import MLPClassifier
 
 from nba_game_prediction import config_modul
 
@@ -57,6 +57,7 @@ def main(config: Dict[str, Any]) -> None:
             "AWAY_is_back_to_back",
         ],
     ]
+    logger.info(f"Features used in the models: {', '.join(x.columns)}")
     x_train, x_test, y_train, y_test = model_selection.train_test_split(
         x, y, test_size=0.2
     )
@@ -67,33 +68,82 @@ def main(config: Dict[str, Any]) -> None:
     x_train = scaler.transform(x_train)
     x_test = scaler.transform(x_test)
 
-    classifiers = [
-        RandomForestClassifier(max_depth=3),
-        RandomForestClassifier(max_depth=5),
-        RandomForestClassifier(max_depth=10),
-        MLPClassifier(alpha=1, max_iter=200, hidden_layer_sizes=(50,)),
-    ]
+    # classifiers = [
+    #     RandomForestClassifier(max_depth=3),
+    #     RandomForestClassifier(max_depth=5),
+    #     RandomForestClassifier(max_depth=10),
+    #     MLPClassifier(alpha=1, max_iter=200, hidden_layer_sizes=(50,)),
+    # ]
+    # name = [
+    #     "RandomForestClassifier(max_depth=3)",
+    #     "RandomForestClassifier(max_depth=5)",
+    #     "RandomForestClassifier(max_depth=10)",
+    #     "MLPClassifier(alpha=1, max_iter=1000)",
+    # ]
+    # for n, clf in enumerate(classifiers):
+    #     clf.fit(x_train, y_train)
+    #     prediction = clf.predict(x_test)
+    #     train_prediction = clf.predict(x_train)
+    #     train_acc = metrics.accuracy_score(y_train, train_prediction)
+    #     test_acc = metrics.accuracy_score(y_test, prediction)
+    #     logger.info(f"{name[n]}: {test_acc} ({train_acc})")
+    #     metrics.ConfusionMatrixDisplay.from_predictions(y_test, prediction)
+    #     out_file_name = os.path.join(
+    #         config["output_dir"], name[n] + "_confusion_matrix.png"
+    #     )
+    #     logger.info(f"Saving plot to: {out_file_name}")
+    #     plt.savefig(out_file_name)
+    #     plt.clf()
 
-    name = [
-        "RandomForestClassifier(max_depth=3)",
-        "RandomForestClassifier(max_depth=5)",
-        "RandomForestClassifier(max_depth=10)",
-        "MLPClassifier(alpha=1, max_iter=1000)",
-    ]
-    for n, clf in enumerate(classifiers):
-        clf.fit(x_train, y_train)
-        prediction = clf.predict(x_test)
-        train_prediction = clf.predict(x_train)
-        train_acc = metrics.accuracy_score(y_train, train_prediction)
-        test_acc = metrics.accuracy_score(y_test, prediction)
-        logger.info(f"{name[n]}: {test_acc} ({train_acc})")
-        metrics.ConfusionMatrixDisplay.from_predictions(y_test, prediction)
-        out_file_name = os.path.join(
-            config["output_dir"], name[n] + "_confusion_matrix.png"
-        )
-        logger.info(f"Saving plot to: {out_file_name}")
-        plt.savefig(out_file_name)
-        plt.clf()
+    # train an XGBoost model
+    # X, y = shap.datasets.boston()
+    param = {"max_depth": 2, "eta": 0.3, "objective": "binary:logistic"}
+    model = xgb.XGBClassifier(**param).fit(x_train, y_train)
+
+    y_train_pred = model.predict(x_train)
+    y_test_pred = model.predict(x_test)
+    train_acc = metrics.accuracy_score(y_train, y_train_pred)
+    test_acc = metrics.accuracy_score(y_test, y_test_pred)
+    logger.info(f"xgboost accuracy: {test_acc} ({train_acc})")
+
+    out_file_name = os.path.join(config["output_dir"], "xgboost_importance.png")
+    xgb.plot_importance(model)
+    fig = plt.gcf()
+    fig.savefig(out_file_name)
+    plt.clf()
+
+    # explain the model's predictions using SHAP
+    # (same syntax works for LightGBM, CatBoost, scikit-learn, transformers, Spark, etc.)
+    explainer = shap.Explainer(model)
+    shap_values = explainer(x_train)
+
+    # visualize the first prediction's explanation
+    out_file_name = os.path.join(config["output_dir"], "xgboost_shap_bar.png")
+    # fig = shap.plots.waterfall(shap_values[0], show=False)
+    shap.plots.bar(shap_values, show=False)
+    fig = plt.gcf()
+    fig.savefig(out_file_name)
+    plt.clf()
+
+    out_file_name = os.path.join(config["output_dir"], "xgboost_shap_dot_summary.png")
+    shap.summary_plot(shap_values, feature_names=x.columns, plot_type="dot")
+    fig = plt.gcf()
+    fig.savefig(out_file_name)
+    plt.clf()
+
+    out_file_name = os.path.join(config["output_dir"], "xgboost_shap_bar_summary.png")
+    shap.summary_plot(shap_values, feature_names=x.columns, plot_type="bar")
+    fig = plt.gcf()
+    fig.savefig(out_file_name)
+    plt.clf()
+
+    out_file_name = os.path.join(
+        config["output_dir"], "xgboost_shap_violin_summary.png"
+    )
+    shap.summary_plot(shap_values, feature_names=x.columns, plot_type="violin")
+    fig = plt.gcf()
+    fig.savefig(out_file_name)
+    plt.clf()
 
 
 if __name__ == "__main__":

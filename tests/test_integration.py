@@ -1,4 +1,5 @@
 import pytest
+import requests
 
 from nba_game_prediction import config_modul
 from nba_game_prediction.scripts import (
@@ -7,6 +8,20 @@ from nba_game_prediction.scripts import (
     plot_train_data,
     train_model,
 )
+
+
+def test_pass_dummy():
+    assert True
+
+
+def test_fail_dummy():
+    assert False
+
+
+def test_request():
+    r = requests.get("https://realpython.com/pytest-python-testing/")
+    r_html = r.text
+    assert r_html
 
 
 @pytest.mark.integration

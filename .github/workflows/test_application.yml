@@ -18,7 +18,7 @@ jobs:
         run: docker push janikvapp/nba-game-prediction:latest
 
   run-tests:
-    # needs: publish-docker
+    needs: publish-docker
     runs-on: ubuntu-latest
     # container: janikvapp/nba-game-prediction:latest
 
@@ -28,7 +28,7 @@ jobs:
       with:
         image: janikvapp/nba-game-prediction:latest
         run: |
-          poetry run pytest
+          poetry run pytest -m "not integration"
     - name: Upload test outputs
       uses: actions/upload-artifact@v3
       with:
