@@ -12,5 +12,5 @@ COPY . .
 RUN apt-get update && apt-get -y upgrade && apt-get -y install curl python3 python3-pip bash
 RUN curl -sSL https://install.python-poetry.org | POETRY_VERSION=1.2.0 python3 -
 ENV PATH="/root/.local/bin:$PATH"
-# RUN poetry install
+RUN poetry install
 CMD /bin/bash
