@@ -8,6 +8,12 @@ import shap
 import xgboost as xgb
 from loguru import logger
 from sklearn import metrics, model_selection, preprocessing
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.naive_bayes import GaussianNB
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.neural_network import MLPClassifier
+from sklearn.svm import SVC
 
 from nba_game_prediction import config_modul
 
@@ -45,13 +51,26 @@ def main(config: Dict[str, Any]) -> None:
         | ((data["ELO_difference"] < 0) & (data["HOME_WL"] == 0))
     ]["HOME_WL"].count() / len(data)
     logger.info(f"Team with higher ELO win rate: {higher_elo_wr}")
+
     higher_trueskill_wr = data[
         ((data["trueskill_mu_difference"] > 0) & (data["HOME_WL"] == 1))
         | ((data["trueskill_mu_difference"] < 0) & (data["HOME_WL"] == 0))
     ]["HOME_WL"].count() / len(data)
     logger.info(f"Team with higher trueskill_mu win rate: {higher_trueskill_wr}")
+
+    higher_FTE_elo_wr = data[
+        ((data["HOME_FTE_ELO_winprob"] > 0.5) & (data["HOME_WL"] == 1))
+        | ((data["HOME_FTE_ELO_winprob"] < 0.5) & (data["HOME_WL"] == 0))
+    ]["HOME_WL"].count() / len(data)
+    logger.info(
+        f"Team with higher FTE win probability actually wins win rate: {higher_FTE_elo_wr}"
+    )
+
     x = data.drop(["HOME_WL"], axis=1)
     x = x[config["train_model"]["feature_list"]]
+    # TODO check these
+    x = x.dropna()
+    y = y[x.index]
     logger.info(f"Features used in the models: {', '.join(x.columns)}")
     x_train, x_test, y_train, y_test = model_selection.train_test_split(
         x, y, test_size=0.2
@@ -62,36 +81,43 @@ def main(config: Dict[str, Any]) -> None:
     scaler = preprocessing.StandardScaler().fit(x_train)
     x_train = scaler.transform(x_train)
     x_test = scaler.transform(x_test)
-
-    # classifiers = [
-    #     RandomForestClassifier(max_depth=3),
-    #     RandomForestClassifier(max_depth=5),
-    #     RandomForestClassifier(max_depth=10),
-    #     MLPClassifier(alpha=1, max_iter=200, hidden_layer_sizes=(50,)),
-    # ]
-    # name = [
-    #     "RandomForestClassifier(max_depth=3)",
-    #     "RandomForestClassifier(max_depth=5)",
-    #     "RandomForestClassifier(max_depth=10)",
-    #     "MLPClassifier(alpha=1, max_iter=1000)",
-    # ]
-    # for n, clf in enumerate(classifiers):
-    #     clf.fit(x_train, y_train)
-    #     prediction = clf.predict(x_test)
-    #     train_prediction = clf.predict(x_train)
-    #     train_acc = metrics.accuracy_score(y_train, train_prediction)
-    #     test_acc = metrics.accuracy_score(y_test, prediction)
-    #     logger.info(f"{name[n]}: {test_acc} ({train_acc})")
-    #     metrics.ConfusionMatrixDisplay.from_predictions(y_test, prediction)
-    #     out_file_name = os.path.join(
-    #         config["output_dir"], name[n] + "_confusion_matrix.png"
-    #     )
-    #     logger.info(f"Saving plot to: {out_file_name}")
-    #     plt.savefig(out_file_name)
-    #     plt.clf()
+    classifiers = [
+        LogisticRegression(),
+        SVC(),
+        GaussianNB(),
+        KNeighborsClassifier(n_neighbors=30),
+        RandomForestClassifier(max_depth=2),
+        RandomForestClassifier(max_depth=3),
+        RandomForestClassifier(max_depth=5),
+        MLPClassifier(alpha=1, max_iter=200, hidden_layer_sizes=(50,)),
+    ]
+    name = [
+        "LinearRegression()",
+        "SVC()",
+        "GaussianNB()",
+        "KNeighborsClassifier(n_neighbors=30)",
+        "RandomForestClassifier(max_depth=2)",
+        "RandomForestClassifier(max_depth=3)",
+        "RandomForestClassifier(max_depth=5)",
+        "MLPClassifier(alpha=1, max_iter=1000)",
+    ]
+    for n, clf in enumerate(classifiers):
+        logger.info(f"Running {name[n]}")
+        clf.fit(x_train, y_train)
+        prediction = clf.predict(x_test)
+        train_prediction = clf.predict(x_train)
+        train_acc = metrics.accuracy_score(y_train, train_prediction)
+        test_acc = metrics.accuracy_score(y_test, prediction)
+        logger.info(f"{name[n]}: {test_acc} ({train_acc})")
+        # metrics.ConfusionMatrixDisplay.from_predictions(y_test, prediction)
+        # out_file_name = os.path.join(
+        #     config["output_dir"], name[n] + "_confusion_matrix.png"
+        # )
+        # logger.info(f"Saving plot to: {out_file_name}")
+        # plt.savefig(out_file_name)
+        # plt.clf()
 
     # train an XGBoost model
-    # X, y = shap.datasets.boston()
     param = {"max_depth": 2, "eta": 0.3, "objective": "binary:logistic"}
     model = xgb.XGBClassifier(**param).fit(x_train, y_train)
 

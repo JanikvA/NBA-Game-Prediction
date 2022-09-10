@@ -10,9 +10,18 @@ from nba_api.stats.endpoints import leaguegamefinder
 from nba_game_prediction import config_modul
 
 
-def scrape_team_payroll(url: str, season: str) -> pd.DataFrame:
-    r = requests.get(url)
-    r_html = r.text
+def new_orleans_name(season: int):
+    if season > 2012:
+        return "New Orleans Pelicans"
+    elif season in [2005, 2006]:
+        return "New Orleans/Oklahoma City Hornets"
+    else:
+        return "New Orleans Hornets"
+
+
+def scrape_team_payroll(url: str, season: int) -> pd.DataFrame:
+    response = requests.get(url)
+    r_html = response.text
     soup = BeautifulSoup(r_html, "html.parser")
     payroll_table = soup.find("table")
     length = len(payroll_table.find_all("td"))
@@ -21,6 +30,11 @@ def scrape_team_payroll(url: str, season: str) -> pd.DataFrame:
         payroll_table.find_all("td")[i].text.strip()
         for i in range(5, length, entries_per_row)
     ]
+    if len(team_names) == 0:
+        logger.error(
+            f"No team names were extracted for the {season} season payroll data!"
+        )
+        return
     payroll = [
         float(payroll_table.find_all("td")[i].text.strip().strip("$").replace(",", ""))
         for i in range(6, length, entries_per_row)
@@ -39,24 +53,26 @@ def scrape_team_payroll(url: str, season: str) -> pd.DataFrame:
         "Orlando": "Orlando Magic",
         "San Antonio": "San Antonio Spurs",
         "Toronto": "Toronto Raptors",
-        "Brooklyn": "New Jersey Nets" if int(season) < 2012 else "Brooklyn Nets",
+        "Brooklyn": "New Jersey Nets" if season < 2012 else "Brooklyn Nets",
         "Milwaukee": "Milwaukee Bucks",
         "New York": "New York Knicks",
-        "LA Clippers": "Los Angeles Clippers",
+        "LA Clippers": "Los Angeles Clippers" if season < 2015 else "LA Clippers",
         "Atlanta": "Atlanta Hawks",
         "Chicago": "Chicago Bulls",
-        "New Orleans": "New Orleans Hornets"
-        if int(season) < 2013
-        else "New Orleans Pelicans",
-        "Oklahoma City": "Oklahoma City Thunder",
+        "New Orleans": new_orleans_name(season),
+        "Oklahoma City": "Seattle SuperSonics"
+        if season < 2008
+        else "Oklahoma City Thunder",
         "Washington": "Washington Wizards",
         "Detroit": "Detroit Pistons",
         "Utah": "Utah Jazz",
         "Houston": "Houston Rockets",
         "Golden State": "Golden State Warriors",
-        "Memphis": "Memphis Grizzlies",
+        "Memphis": "Vancouver Grizzlies" if season < 2001 else "Memphis Grizzlies",
         "Cleveland": "Cleveland Cavaliers",
-        "Charlotte": "Charlotte Bobcats" if int(season) < 2014 else "Charlotte Hornets",
+        "Charlotte": "Charlotte Bobcats"
+        if season in range(2004, 2014)
+        else "Charlotte Hornets",
         "Sacramento": "Sacramento Kings",
         "Denver": "Denver Nuggets",
         "Indiana": "Indiana Pacers",
@@ -128,11 +144,12 @@ def main(config: dict) -> None:
         logger.info(f"Collecting game data and team payroll for {season}")
         team_payrolls = scrape_team_payroll(
             f"https://hoopshype.com/salaries/{season.replace('-','-20')}/",
-            season[: season.find("-")],
+            int(season[: season.find("-")]),
         )
         all_team_payrolls = pd.concat(
             (all_team_payrolls, team_payrolls), ignore_index=True
         )
+
         for season_type in config["collect_game_data"]["season_types"]:
             gamefinder = leaguegamefinder.LeagueGameFinder(
                 season_nullable=season,
@@ -153,6 +170,7 @@ def main(config: dict) -> None:
             time.sleep(1)
 
     combined_games = combine_team_games(all_games)
+    time.sleep(1)
 
     logger.info(f"Saving {len(all_games)} collected games to {config['sql_db_path']}")
     sql_connection = sqlite3.connect(config["sql_db_path"])

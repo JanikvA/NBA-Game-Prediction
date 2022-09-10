@@ -4,6 +4,7 @@
  FiveThirtyEight
     - https://datahub.io/five-thirty-eight/nba-elo#readme
     - https://fivethirtyeight.com/features/how-we-calculate-nba-elo-ratings/
+    - https://projects.fivethirtyeight.com/nba-model/nba_elo_latest.csv
 
 ## Dependencies
 

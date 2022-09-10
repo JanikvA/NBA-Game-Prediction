@@ -1,4 +1,5 @@
 import datetime
+import os
 import sqlite3
 from typing import Any, Dict, List, Set
 
@@ -219,7 +220,10 @@ def extract_game_data(
                 team_data_dic[ha]["FTE_ELO"],
                 team_data_dic[ha]["FTE_ELO_winprob"],
             ) = pick_FTE_game_data(
-                game_data[f"TEAM_ABBREVIATION_{ha}"], game_data.name, FTE_data
+                game_data[f"TEAM_ABBREVIATION_{ha}"],
+                game_data.name,
+                FTE_data,
+                game_data,
             )
 
         formatted_data = pd.DataFrame.from_records(team_data_dic[ha], index=[0])
@@ -230,7 +234,9 @@ def extract_game_data(
     update_elo_ratings(team_obj_dic, game_data)
 
 
-def pick_FTE_game_data(team_abbrv, game_date, FTE_data):
+def pick_FTE_game_data(
+    team_abbrv, game_date, FTE_data, game_data=pd.Series(dtype="object")
+):
     if team_abbrv == "CHA":
         team_abbrv = "CHO"  # don't know why but 538 uses CHO for charlotte
     if team_abbrv == "NOH":
@@ -255,9 +261,10 @@ def pick_FTE_game_data(team_abbrv, game_date, FTE_data):
     else:
         logger.error(
             f"""Can't find the game in the FTE data.
-            \n --------\n {game_date}
+            \n --------\n {game_date}, {team_abbrv}
             \n ------------ \n{FTE_data_game_day}"""
         )
+        logger.info(game_data)
         raise Exception("This should not happen!")
 
 
@@ -376,6 +383,7 @@ def get_game_data(sql_db_connection: sqlite3.Connection) -> pd.DataFrame:
         pd.DataFrame: Contains data for all games
     """
     games = pd.read_sql("SELECT * from NBA_games", sql_db_connection)
+    games["SEASON"] = pd.to_numeric(games["SEASON"])
     games["GAME_DATE"] = pd.to_datetime(games["GAME_DATE"])
     games = games.set_index("GAME_DATE")
     games = games.sort_index()
@@ -409,6 +417,7 @@ def get_all_team_names(games: pd.DataFrame) -> Set:
 
 
 def validate_payroll_data(payroll_data: pd.DataFrame, games: pd.DataFrame) -> None:
+    everything_is_ok = True
     for season in games["SEASON"].unique():
         teams_in_season = get_all_team_names(games[games["SEASON"] == season])
         for team in teams_in_season:
@@ -419,7 +428,9 @@ def validate_payroll_data(payroll_data: pd.DataFrame, games: pd.DataFrame) -> No
                 ].unique()
             ):
                 logger.error(f"No payroll data for {team} in the {season} season!")
-                raise Exception("Should not happen")
+                everything_is_ok = False
+    if not everything_is_ok:
+        raise Exception("Payroll data is not available for all teams/seasons!")
 
 
 def get_FTE_data(path_to_csv: str) -> pd.DataFrame:
@@ -448,13 +459,23 @@ def main(config: Dict[str, Any]) -> None:
     Args:
         config (Dict[str, Any]): config
     """
-    connection = sqlite3.connect(config["sql_db_path"])
+    if os.path.isfile(config["sql_db_path"]):
+        connection = sqlite3.connect(config["sql_db_path"])
+    else:
+        logger.error(
+            f"{config['sql_db_path']} does not exist! need to run collect_game_data.py first!"
+        )
     trueskill.setup(mu=30, draw_probability=0)
     games = get_game_data(connection)
+
+    # FIXME, this game is missing in the FTE data
+    games = games[games["GAME_ID"] != "0020700367"]
+
     # initialize teams:
     for team_name in get_all_team_names(games):
         NBATeam(team_name)
     payroll_data = get_team_payroll_data(connection)
+    logger.info("Validating payroll and game data compatibility...")
     validate_payroll_data(payroll_data, games)
     fill_team_game_data(
         games, payroll_data, config["create_train_data"]["FTE_csv_path"]
