@@ -1,6 +1,6 @@
 import datetime
 import sqlite3
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Set
 
 import numpy as np
 import pandas as pd
@@ -14,6 +14,7 @@ from nba_game_prediction import config_modul, elo_modul
 class NBATeam:
     """Class to handle NBA teams and the data associated to them"""
 
+    nba_teams_abbreviations: Dict[str, str] = {}
     nba_teams: Dict[str, Any] = {}
     home_away: List[str] = ["HOME", "AWAY"]
     team_stats: List[str] = [
@@ -56,6 +57,30 @@ class NBATeam:
             raise Exception(f"{self.name} is already in NBATeam.nba_teams!")
         else:
             NBATeam.nba_teams[self.name] = self
+
+    def add_payroll_data(self, payroll_data: pd.DataFrame) -> None:
+        """Adds payroll data to the self.games data
+
+        Args:
+            payroll_data (pd.DataFrame): payroll data collected from hoopshype.com
+        """
+
+        for attr in ["payroll", "inflation_adjusted_payroll", "fraction_total_payroll"]:
+            self.games[attr] = self.games.apply(
+                lambda row: payroll_data[
+                    (payroll_data["team_name"] == self.name)
+                    & (payroll_data["season"] == row["SEASON"])
+                ][attr].iloc[0],
+                axis=1,
+            )
+
+        self.games["payroll_oppo_ratio"] = self.games["payroll"] / self.games.apply(
+            lambda row: payroll_data[
+                (payroll_data["team_name"] == row["TEAM_NAME_opponent"])
+                & (payroll_data["season"] == row["SEASON"])
+            ]["payroll"].iloc[0],
+            axis=1,
+        )
 
     def get_stats_between_dates(
         self, from_date: datetime.datetime, to_date: datetime.datetime
@@ -105,8 +130,13 @@ class NBATeam:
                 "trueskill_mu",
                 "trueskill_sigma",
                 "trueskill_winprob",
+                "fraction_total_payroll",
+                "payroll_oppo_ratio",
+                "FTE_ELO",
+                "FTE_ELO_winprob",
             ]:
                 data[key] = self.games.loc[date][key]
+
         return data
 
     def get_last_N_games(
@@ -143,7 +173,9 @@ class NBATeam:
 
 
 # TODO optimize
-def extract_game_data(game_data: pd.DataFrame) -> None:
+def extract_game_data(
+    game_data: pd.DataFrame, FTE_data: pd.DataFrame = pd.DataFrame()
+) -> None:
     """Extracts relevant data from the game and adds the
     information to the data of both the home and away team
 
@@ -155,14 +187,10 @@ def extract_game_data(game_data: pd.DataFrame) -> None:
         ha: NBATeam.nba_teams[game_data[f"TEAM_NAME_{ha}"]] for ha in NBATeam.home_away
     }
 
-    team_data_dic["HOME"]["HOME_GAME"] = 1
-    team_data_dic["AWAY"]["HOME_GAME"] = 0
-    team_data_dic["HOME"]["TEAM_NAME_opponent"] = game_data["TEAM_NAME_AWAY"]
-    team_data_dic["AWAY"]["TEAM_NAME_opponent"] = game_data["TEAM_NAME_HOME"]
-
     for ha in NBATeam.home_away:
         opposite_ha = NBATeam.get_opposite_home_away(ha)
         team_data_dic[ha]["GAME_DATE"] = game_data.name
+        team_data_dic[ha]["HOME_GAME"] = 1 if "HOME" == ha else 0
         for uniq in ["SEASON_ID", "GAME_ID", "SEASON_TYPE", "SEASON"]:
             team_data_dic[ha][uniq] = game_data[uniq]
         for team_stat in NBATeam.team_stats:
@@ -185,12 +213,55 @@ def extract_game_data(game_data: pd.DataFrame) -> None:
         team_data_dic[ha]["trueskill_winprob"] = elo_modul.trueskill_win_probability(
             team_obj_dic[ha].trueskill, team_obj_dic[opposite_ha].trueskill
         )
+
+        if not FTE_data.empty:
+            (
+                team_data_dic[ha]["FTE_ELO"],
+                team_data_dic[ha]["FTE_ELO_winprob"],
+            ) = pick_FTE_game_data(
+                game_data[f"TEAM_ABBREVIATION_{ha}"], game_data.name, FTE_data
+            )
+
         formatted_data = pd.DataFrame.from_records(team_data_dic[ha], index=[0])
         team_obj_dic[ha].games = pd.concat(
             [team_obj_dic[ha].games, formatted_data], ignore_index=True
         )
 
-    # update ratings
+    update_elo_ratings(team_obj_dic, game_data)
+
+
+def pick_FTE_game_data(team_abbrv, game_date, FTE_data):
+    if team_abbrv == "CHA":
+        team_abbrv = "CHO"  # don't know why but 538 uses CHO for charlotte
+    if team_abbrv == "NOH":
+        team_abbrv = "NOP"  # don't know why but 538 uses CHO for charlotte
+    if team_abbrv == "PHX":
+        team_abbrv = "PHO"  # don't know why but 538 uses CHO for charlotte
+    if team_abbrv == "BKN":
+        team_abbrv = "BRK"  # don't know why but 538 uses CHO for charlotte
+    FTE_data_game_day = FTE_data[FTE_data["date"] == game_date]
+    found_game = False
+    for n, row in FTE_data_game_day.iterrows():
+        if row["team1"] == team_abbrv:
+            FTE_elo = row["elo1_pre"]
+            FTE_elo_winprob = row["elo_prob1"]
+            found_game = True
+        elif row["team2"] == team_abbrv:
+            FTE_elo = row["elo2_pre"]
+            FTE_elo_winprob = FTE_data_game_day["elo_prob2"]
+            found_game = True
+    if found_game:
+        return FTE_elo, FTE_elo_winprob
+    else:
+        logger.error(
+            f"""Can't find the game in the FTE data.
+            \n --------\n {game_date}
+            \n ------------ \n{FTE_data_game_day}"""
+        )
+        raise Exception("This should not happen!")
+
+
+def update_elo_ratings(team_obj_dic: Dict[str, NBATeam], game_data: pd.Series) -> None:
     if int(game_data["WL_HOME"]) == 1:
         (
             team_obj_dic["HOME"].trueskill,
@@ -213,21 +284,31 @@ def extract_game_data(game_data: pd.DataFrame) -> None:
         )
 
 
-def fill_team_game_data(games: pd.DataFrame) -> None:
+def fill_team_game_data(
+    games: pd.DataFrame, payroll_data: pd.DataFrame, FTE_csv_path: str = ""
+) -> None:
     """Adds the statistics from all games
     provided to their respective teams
 
     Args:
         games (pd.DataFrame): Games to be analyzed
+        payroll_data (pd.DataFrame): payroll data
     """
+    FTE_data = pd.DataFrame()
+    if FTE_csv_path:
+        logger.info(
+            f"Adding FiveThirtyEight ELO data from {FTE_csv_path} to the games..."
+        )
+        FTE_data = get_FTE_data(FTE_csv_path)
     logger.info(f"Loading {len(games)} games for {len(NBATeam.nba_teams)} teams")
     with Progress() as progress:
         task = progress.add_task("[green]Loading game data...", total=len(games))
         for index, row in games.iterrows():
-            extract_game_data(row)
+            extract_game_data(row, FTE_data)
             progress.update(task, advance=1)
     for team_name, team in NBATeam.nba_teams.items():
         team.games = team.games.set_index("GAME_DATE")
+        team.add_payroll_data(payroll_data)
 
 
 def get_train_data_from_game(
@@ -278,6 +359,10 @@ def create_train_data(
             game_train_data = pd.DataFrame(tmp, index=[0])
             train_data = pd.concat([train_data, game_train_data], ignore_index=True)
             progress.update(task, advance=1)
+    logger.info(
+        f"""Saving trainings data to the train_data table with
+        the following columns:\n{train_data.columns.values}"""
+    )
     train_data.to_sql("train_data", sql_db_connection, if_exists="replace", index=False)
 
 
@@ -303,6 +388,60 @@ def get_game_data(sql_db_connection: sqlite3.Connection) -> pd.DataFrame:
     return games
 
 
+def get_team_payroll_data(sql_db_connection: sqlite3.Connection) -> pd.DataFrame:
+    payroll_data = pd.read_sql("SELECT * from team_payroll", sql_db_connection)
+    return payroll_data
+
+
+def get_all_team_names(games: pd.DataFrame) -> Set:
+    if "TEAM_NAME_HOME" in games.columns:
+        home_key = "TEAM_NAME_HOME"
+        away_key = "TEAM_NAME_AWAY"
+    elif "HOME_TEAM_NAME" in games.columns:
+        home_key = "HOME_TEAM_NAME"
+        away_key = "AWAY_TEAM_NAME"
+    else:
+        raise Exception(
+            f"Can't find the team name column in the data frame! {games.columns}"
+        )
+
+    return set(np.concatenate((games[home_key].unique(), games[away_key].unique())))
+
+
+def validate_payroll_data(payroll_data: pd.DataFrame, games: pd.DataFrame) -> None:
+    for season in games["SEASON"].unique():
+        teams_in_season = get_all_team_names(games[games["SEASON"] == season])
+        for team in teams_in_season:
+            if (
+                team
+                not in payroll_data[payroll_data["season"] == season][
+                    "team_name"
+                ].unique()
+            ):
+                logger.error(f"No payroll data for {team} in the {season} season!")
+                raise Exception("Should not happen")
+
+
+def get_FTE_data(path_to_csv: str) -> pd.DataFrame:
+    FTE_data = pd.read_csv(
+        path_to_csv,
+        parse_dates=["date"],
+        usecols=[
+            "date",
+            "season",
+            "team1",
+            "team2",
+            "elo1_pre",
+            "elo2_pre",
+            "elo_prob1",
+            "elo_prob2",
+        ],
+    )
+    FTE_data["season"] = FTE_data["season"] - 1  # Convention used in my code is
+    # that the season is identified by the year it starts in NOT the year it ends in
+    return FTE_data
+
+
 def main(config: Dict[str, Any]) -> None:
     """Creates the data used in the training and saves it to the SQL data base
 
@@ -313,13 +452,13 @@ def main(config: Dict[str, Any]) -> None:
     trueskill.setup(mu=30, draw_probability=0)
     games = get_game_data(connection)
     # initialize teams:
-    for team_name in set(
-        np.concatenate(
-            (games["TEAM_NAME_HOME"].unique(), games["TEAM_NAME_AWAY"].unique())
-        )
-    ):
+    for team_name in get_all_team_names(games):
         NBATeam(team_name)
-    fill_team_game_data(games)
+    payroll_data = get_team_payroll_data(connection)
+    validate_payroll_data(payroll_data, games)
+    fill_team_game_data(
+        games, payroll_data, config["create_train_data"]["FTE_csv_path"]
+    )
     create_train_data(games, connection, config["create_train_data"]["feature_list"])
     connection.close()
 

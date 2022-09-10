@@ -64,14 +64,6 @@ six = "*"
 test = ["astroid (<=2.5.3)", "pytest"]
 
 [[package]]
-name = "async_generator"
-version = "1.10"
-description = "Async generators and context managers for Python 3.5+"
-category = "main"
-optional = false
-python-versions = ">=3.5"
-
-[[package]]
 name = "attrs"
 version = "22.1.0"
 description = "Classes Without Boilerplate"
@@ -363,14 +355,6 @@ type1 = ["xattr"]
 ufo = ["fs (>=2.2.0,<3)"]
 unicode = ["unicodedata2 (>=14.0.0)"]
 woff = ["brotli (>=1.0.1)", "brotlicffi (>=0.8.0)", "zopfli (>=0.1.4)"]
-
-[[package]]
-name = "h11"
-version = "0.13.0"
-description = "A pure-Python, bring-your-own-I/O implementation of HTTP/1.1"
-category = "main"
-optional = false
-python-versions = ">=3.6"
 
 [[package]]
 name = "identify"
@@ -949,17 +933,6 @@ optional = false
 python-versions = ">=3.8"
 
 [[package]]
-name = "outcome"
-version = "1.2.0"
-description = "Capture the outcome of Python function calls."
-category = "main"
-optional = false
-python-versions = ">=3.7"
-
-[package.dependencies]
-attrs = ">=19.2.0"
-
-[[package]]
 name = "packaging"
 version = "21.3"
 description = "Core utilities for Python packages"
@@ -1260,14 +1233,6 @@ optional = false
 python-versions = ">=3.7"
 
 [[package]]
-name = "PySocks"
-version = "1.7.1"
-description = "A Python SOCKS client module. See https://github.com/Anorov/PySocks for more information."
-category = "main"
-optional = false
-python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
-
-[[package]]
 name = "pytest"
 version = "7.1.3"
 description = "pytest: simple powerful testing with Python"
@@ -1499,20 +1464,6 @@ pandas = ">=0.23"
 scipy = ">=1.0"
 
 [[package]]
-name = "selenium"
-version = "4.4.3"
-description = ""
-category = "main"
-optional = false
-python-versions = "~=3.7"
-
-[package.dependencies]
-certifi = ">=2021.10.8"
-trio = ">=0.17,<1.0"
-trio-websocket = ">=0.9,<1.0"
-urllib3 = {version = ">=1.26,<2.0", extras = ["socks"]}
-
-[[package]]
 name = "Send2Trash"
 version = "1.8.0"
 description = "Send file to trash natively under Mac OS X, Windows and Linux."
@@ -1597,26 +1548,10 @@ optional = false
 python-versions = ">=3.6"
 
 [[package]]
-name = "sniffio"
-version = "1.3.0"
-description = "Sniff out which async library your code is running under"
-category = "main"
-optional = false
-python-versions = ">=3.7"
-
-[[package]]
 name = "snowballstemmer"
 version = "2.2.0"
 description = "This package provides 29 stemmers for 28 languages generated from Snowball algorithms."
 category = "dev"
-optional = false
-python-versions = "*"
-
-[[package]]
-name = "sortedcontainers"
-version = "2.4.0"
-description = "Sorted Containers -- Sorted List, Sorted Dict, Sorted Set"
-category = "main"
 optional = false
 python-versions = "*"
 
@@ -1744,36 +1679,6 @@ python-versions = ">=3.7"
 test = ["pre-commit", "pytest"]
 
 [[package]]
-name = "trio"
-version = "0.21.0"
-description = "A friendly Python library for async concurrency and I/O"
-category = "main"
-optional = false
-python-versions = ">=3.7"
-
-[package.dependencies]
-async-generator = ">=1.9"
-attrs = ">=19.2.0"
-cffi = {version = ">=1.14", markers = "os_name == \"nt\" and implementation_name != \"pypy\""}
-idna = "*"
-outcome = "*"
-sniffio = "*"
-sortedcontainers = "*"
-
-[[package]]
-name = "trio-websocket"
-version = "0.9.2"
-description = "WebSocket library for Trio"
-category = "main"
-optional = false
-python-versions = ">=3.5"
-
-[package.dependencies]
-async-generator = ">=1.10"
-trio = ">=0.11"
-wsproto = ">=0.14"
-
-[[package]]
 name = "trueskill"
 version = "0.4.5"
 description = "The video game rating system"
@@ -1807,9 +1712,6 @@ description = "HTTP library with thread-safe connection pooling, file post, and 
 category = "main"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*, <4"
-
-[package.dependencies]
-PySocks = {version = ">=1.5.6,<1.5.7 || >1.5.7,<2.0", optional = true, markers = "extra == \"socks\""}
 
 [package.extras]
 brotli = ["brotli (>=1.0.9)", "brotlicffi (>=0.8.0)", "brotlipy (>=0.6.0)"]
@@ -1869,17 +1771,6 @@ python-versions = ">=3.5"
 dev = ["black (>=19.3b0)", "pytest (>=4.6.2)"]
 
 [[package]]
-name = "wsproto"
-version = "1.2.0"
-description = "WebSockets state-machine based protocol implementation"
-category = "main"
-optional = false
-python-versions = ">=3.7.0"
-
-[package.dependencies]
-h11 = ">=0.9.0,<1"
-
-[[package]]
 name = "xgboost"
 version = "1.6.2"
 description = "XGBoost Python Package"
@@ -1913,7 +1804,7 @@ testing = ["func-timeout", "jaraco.itertools", "pytest (>=6)", "pytest-black (>=
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8,<3.12"
-content-hash = "a8356012415ff5a48889ec1b1f22c41272a5b9a68510b5b539cc2839d40c3bde"
+content-hash = "b1b8c4af9efc2c4506c20caa95549d588330eff819cfee4eff8087ab433e7b6a"
 
 [metadata.files]
 appnope = [
@@ -1954,10 +1845,6 @@ argon2-cffi-bindings = [
 asttokens = [
     {file = "asttokens-2.0.8-py2.py3-none-any.whl", hash = "sha256:e3305297c744ae53ffa032c45dc347286165e4ffce6875dc662b205db0623d86"},
     {file = "asttokens-2.0.8.tar.gz", hash = "sha256:c61e16246ecfb2cde2958406b4c8ebc043c9e6d73aaa83c941673b35e5d3a76b"},
-]
-async_generator = [
-    {file = "async_generator-1.10-py3-none-any.whl", hash = "sha256:01c7bf666359b4967d2cda0000cc2e4af16a0ae098cbffcb8472fb9e8ad6585b"},
-    {file = "async_generator-1.10.tar.gz", hash = "sha256:6ebb3d106c12920aaae42ccb6f787ef5eefdcdd166ea3d628fa8476abe712144"},
 ]
 attrs = [
     {file = "attrs-22.1.0-py2.py3-none-any.whl", hash = "sha256:86efa402f67bf2df34f51a335487cf46b1ec130d02b8d39fd248abfd30da551c"},
@@ -2209,10 +2096,6 @@ filelock = [
 fonttools = [
     {file = "fonttools-4.37.1-py3-none-any.whl", hash = "sha256:fff6b752e326c15756c819fe2fe7ceab69f96a1dbcfe8911d0941cdb49905007"},
     {file = "fonttools-4.37.1.zip", hash = "sha256:4606e1a88ee1f6699d182fea9511bd9a8a915d913eab4584e5226da1180fcce7"},
-]
-h11 = [
-    {file = "h11-0.13.0-py3-none-any.whl", hash = "sha256:8ddd78563b633ca55346c8cd41ec0af27d3c79931828beffb46ce70a379e7442"},
-    {file = "h11-0.13.0.tar.gz", hash = "sha256:70813c1135087a248a4d38cc0e1a0181ffab2188141a93eaf567940c3957ff06"},
 ]
 identify = [
     {file = "identify-2.5.5-py2.py3-none-any.whl", hash = "sha256:ef78c0d96098a3b5fe7720be4a97e73f439af7cf088ebf47b620aeaa10fadf97"},
@@ -2678,10 +2561,6 @@ numpy = [
     {file = "numpy-1.23.2-pp38-pypy38_pp73-win_amd64.whl", hash = "sha256:be6b350dfbc7f708d9d853663772a9310783ea58f6035eec649fb9c4371b5389"},
     {file = "numpy-1.23.2.tar.gz", hash = "sha256:b78d00e48261fbbd04aa0d7427cf78d18401ee0abd89c7559bbf422e5b1c7d01"},
 ]
-outcome = [
-    {file = "outcome-1.2.0-py2.py3-none-any.whl", hash = "sha256:c4ab89a56575d6d38a05aa16daeaa333109c1f96167aba8901ab18b6b5e0f7f5"},
-    {file = "outcome-1.2.0.tar.gz", hash = "sha256:6f82bd3de45da303cf1f771ecafa1633750a358436a8bb60e06a1ceb745d2672"},
-]
 packaging = [
     {file = "packaging-21.3-py3-none-any.whl", hash = "sha256:ef103e05f519cdc783ae24ea4e2e0f508a9c99b2d4969652eed6a2e1ea5bd522"},
     {file = "packaging-21.3.tar.gz", hash = "sha256:dd47c42927d89ab911e606518907cc2d3a1f38bbd026385970643f9c5b8ecfeb"},
@@ -2914,11 +2793,6 @@ pyrsistent = [
     {file = "pyrsistent-0.18.1-cp39-cp39-win_amd64.whl", hash = "sha256:e24a828f57e0c337c8d8bb9f6b12f09dfdf0273da25fda9e314f0b684b415a07"},
     {file = "pyrsistent-0.18.1.tar.gz", hash = "sha256:d4d61f8b993a7255ba714df3aca52700f8125289f84f704cf80916517c46eb96"},
 ]
-PySocks = [
-    {file = "PySocks-1.7.1-py27-none-any.whl", hash = "sha256:08e69f092cc6dbe92a0fdd16eeb9b9ffbc13cadfe5ca4c7bd92ffb078b293299"},
-    {file = "PySocks-1.7.1-py3-none-any.whl", hash = "sha256:2725bd0a9925919b9b51739eea5f9e2bae91e83288108a9ad338b2e3a4435ee5"},
-    {file = "PySocks-1.7.1.tar.gz", hash = "sha256:3f8804571ebe159c380ac6de37643bb4685970655d3bba243530d6558b799aa0"},
-]
 pytest = [
     {file = "pytest-7.1.3-py3-none-any.whl", hash = "sha256:1377bda3466d70b55e3f5cecfa55bb7cfcf219c7964629b967c37cf0bda818b7"},
     {file = "pytest-7.1.3.tar.gz", hash = "sha256:4f365fec2dff9c1162f834d9f18af1ba13062db0c708bf7b946f8a5c76180c39"},
@@ -3140,9 +3014,6 @@ seaborn = [
     {file = "seaborn-0.11.2-py3-none-any.whl", hash = "sha256:85a6baa9b55f81a0623abddc4a26b334653ff4c6b18c418361de19dbba0ef283"},
     {file = "seaborn-0.11.2.tar.gz", hash = "sha256:cf45e9286d40826864be0e3c066f98536982baf701a7caa386511792d61ff4f6"},
 ]
-selenium = [
-    {file = "selenium-4.4.3-py3-none-any.whl", hash = "sha256:ca6ed4a58a426bb40bf5aa2b027ce211cc5200f1acdcdfb8258b32b24624150c"},
-]
 Send2Trash = [
     {file = "Send2Trash-1.8.0-py3-none-any.whl", hash = "sha256:f20eaadfdb517eaca5ce077640cb261c7d2698385a6a0f072a4a5447fd49fa08"},
     {file = "Send2Trash-1.8.0.tar.gz", hash = "sha256:d2c24762fd3759860a0aff155e45871447ea58d2be6bdd39b5c8f966a0c99c2d"},
@@ -3191,17 +3062,9 @@ slicer = [
     {file = "slicer-0.0.7-py3-none-any.whl", hash = "sha256:0b94faa5251c0f23782c03f7b7eedda91d80144059645f452c4bc80fab875976"},
     {file = "slicer-0.0.7.tar.gz", hash = "sha256:f5d5f7b45f98d155b9c0ba6554fa9770c6b26d5793a3e77a1030fb56910ebeec"},
 ]
-sniffio = [
-    {file = "sniffio-1.3.0-py3-none-any.whl", hash = "sha256:eecefdce1e5bbfb7ad2eeaabf7c1eeb404d7757c379bd1f7e5cce9d8bf425384"},
-    {file = "sniffio-1.3.0.tar.gz", hash = "sha256:e60305c5e5d314f5389259b7f22aaa33d8f7dee49763119234af3755c55b9101"},
-]
 snowballstemmer = [
     {file = "snowballstemmer-2.2.0-py2.py3-none-any.whl", hash = "sha256:c8e1716e83cc398ae16824e5572ae04e0d9fc2c6b985fb0f900f5f0c96ecba1a"},
     {file = "snowballstemmer-2.2.0.tar.gz", hash = "sha256:09b16deb8547d3412ad7b590689584cd0fe25ec8db3be37788be3810cbf19cb1"},
-]
-sortedcontainers = [
-    {file = "sortedcontainers-2.4.0-py2.py3-none-any.whl", hash = "sha256:a163dcaede0f1c021485e957a39245190e74249897e2ae4b2aa38595db237ee0"},
-    {file = "sortedcontainers-2.4.0.tar.gz", hash = "sha256:25caa5a06cc30b6b83d11423433f65d1f9d76c4c6a0c90e3379eaa43b9bfdb88"},
 ]
 soupsieve = [
     {file = "soupsieve-2.3.2.post1-py3-none-any.whl", hash = "sha256:3b2503d3c7084a42b1ebd08116e5f81aadfaea95863628c80a3b774a11b7c759"},
@@ -3255,14 +3118,6 @@ traitlets = [
     {file = "traitlets-5.3.0-py3-none-any.whl", hash = "sha256:65fa18961659635933100db8ca120ef6220555286949774b9cfc106f941d1c7a"},
     {file = "traitlets-5.3.0.tar.gz", hash = "sha256:0bb9f1f9f017aa8ec187d8b1b2a7a6626a2a1d877116baba52a129bfa124f8e2"},
 ]
-trio = [
-    {file = "trio-0.21.0-py3-none-any.whl", hash = "sha256:4dc0bf9d5cc78767fc4516325b6d80cc0968705a31d0eec2ecd7cdda466265b0"},
-    {file = "trio-0.21.0.tar.gz", hash = "sha256:523f39b7b69eef73501cebfe1aafd400a9aad5b03543a0eded52952488ff1c13"},
-]
-trio-websocket = [
-    {file = "trio-websocket-0.9.2.tar.gz", hash = "sha256:a3d34de8fac26023eee701ed1e7bf4da9a8326b61a62934ec9e53b64970fd8fe"},
-    {file = "trio_websocket-0.9.2-py3-none-any.whl", hash = "sha256:5b558f6e83cc20a37c3b61202476c5295d1addf57bd65543364e0337e37ed2bc"},
-]
 trueskill = [
     {file = "trueskill-0.4.5.tar.gz", hash = "sha256:9d62b48d2428369d712bd9becff9f9a2caa325e1a2ab5f9392d34bff757867bb"},
 ]
@@ -3296,10 +3151,6 @@ widgetsnbextension = [
 win32-setctime = [
     {file = "win32_setctime-1.1.0-py3-none-any.whl", hash = "sha256:231db239e959c2fe7eb1d7dc129f11172354f98361c4fa2d6d2d7e278baa8aad"},
     {file = "win32_setctime-1.1.0.tar.gz", hash = "sha256:15cf5750465118d6929ae4de4eb46e8edae9a5634350c01ba582df868e932cb2"},
-]
-wsproto = [
-    {file = "wsproto-1.2.0-py3-none-any.whl", hash = "sha256:b9acddd652b585d75b20477888c56642fdade28bdfd3579aa24a4d2c037dd736"},
-    {file = "wsproto-1.2.0.tar.gz", hash = "sha256:ad565f26ecb92588a3e43bc3d96164de84cd9902482b130d0ddbaa9664a85065"},
 ]
 xgboost = [
     {file = "xgboost-1.6.2-py3-none-macosx_10_15_x86_64.macosx_11_0_x86_64.macosx_12_0_x86_64.whl", hash = "sha256:ddc5dc97ef604b61df6cae34a73ead880dfbc9008e291d98f19b08481c0549d7"},

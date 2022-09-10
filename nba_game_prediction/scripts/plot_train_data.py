@@ -18,12 +18,12 @@ def add_random_probs(data: pd.DataFrame) -> None:
     data["random_winprob"] = data.apply(lambda row: random.uniform(0, 1), axis=1)
 
 
-# FIXME should really be the mean of prediction probabilities for each bin and not the bin center
-def pred_vs_actual_prob_comparison(
+def pred_vs_actual_prob_closure(
     train_data: pd.DataFrame, prob_key: str, out_dir: str
 ) -> None:
     """Sorts games into bins based on the probability that the home team wins.
-    Then calculates the ratio of the actual win rate for these games and the bin center.
+    Then calculates the ratio of the actual win rate for these
+    games and the mean of the predictions.
     For a perfect algo this ratio should be close to 1.
     The errorbars are calculated using Poisson error and the standard propagation of uncertainty
 
@@ -33,7 +33,7 @@ def pred_vs_actual_prob_comparison(
         HOME_trueskill_winprob or random_winprob
         out_dir (str): The plots will be saved to this directory
     """
-    bins = [0, 0.2, 0.3, 0.4, 0.45, 0.5, 0.55, 0.6, 0.7, 0.8, 1]
+    bins = [0, 0.25, 0.35, 0.45, 0.55, 0.65, 0.75, 1]
     x_data = []
     y_pred_data = []
     y_actual_data = []
@@ -57,30 +57,34 @@ def pred_vs_actual_prob_comparison(
         )
         y_err.append(unc / y_pred_data[-1])
         ratio.append(y_actual_data[-1] / y_pred_data[-1])
-    fig, ax = plt.subplots(figsize=(10, 6))
-    ax.errorbar(x=x_data, y=ratio, yerr=y_err, color="black")
+    fig, axs = plt.subplots(2, 1, figsize=(10, 6))
+    sns.histplot(
+        data=train_data,
+        x=prob_key,
+        hue="HOME_WL",
+        bins=bins,
+        multiple="stack",
+        ax=axs[0],
+    )
+    axs[1].errorbar(x=x_data, y=ratio, yerr=y_err, color="black")
+    axs[1].set_ylabel("Ratio of win probabilities (prediction/actual)")
     out_file_name = os.path.join(out_dir, "probability_comparison_" + prob_key + ".png")
     logger.info(f"Saving plot to: {out_file_name}")
     fig.savefig(out_file_name)
 
 
-def feature_correlation(train_data: pd.DataFrame, method: str, out_dir: str) -> None:
+def feature_correlation(
+    train_data: pd.DataFrame, cols_to_plot: List[str], method: str, out_dir: str
+) -> None:
     """Creates heatmap of correlation for input features
 
     Args:
         train_data (pd.DataFrame): trainings data
+        cols_to_plot (List[str]): Which features to plot.
         method (str): Which correlation method to use. (Choices: "pearson", "kendall", "spearman")
         out_dir (str): plots will be saved to the path of this directory
     """
-    plot_data = train_data.drop(
-        [
-            "SEASON_ID",
-            "AWAY_TEAM_NAME",
-            "HOME_TEAM_NAME",
-            "GAME_DATE",
-        ],
-        axis=1,
-    )
+    plot_data = train_data[cols_to_plot]
     fig, ax = plt.subplots(figsize=(20, 15))
     sns.heatmap(plot_data.corr(method=method), vmin=-1, vmax=1, annot=True, ax=ax)
     out_file_name = os.path.join(out_dir, "feature_correlation_" + method + ".png")
@@ -89,33 +93,27 @@ def feature_correlation(train_data: pd.DataFrame, method: str, out_dir: str) -> 
 
 
 # TODO this is slow. make it faster
-def feature_pair_plot(train_data: pd.DataFrame, out_dir: str) -> None:
+def feature_pair_plot(
+    train_data: pd.DataFrame, cols_to_plot: List[str], out_dir: str
+) -> None:
     """Seaborn pairplot of features. Correlation between
     features and separation power for HOME_WL can be observed
 
     Args:
         train_data (pd.DataFrame): trainings data
+        cols_to_plot (List[str]): Which features to plot.
         out_dir (str): plots will be saved to the path of this directory
     """
-    plot_data = train_data.drop(
-        [
-            "GAME_ID",
-            "SEASON_ID",
-            "AWAY_TEAM_NAME",
-            "HOME_TEAM_NAME",
-            "GAME_DATE",
-            "HOME_is_back_to_back",
-            "AWAY_is_back_to_back",
-            "is_Playoffs",
-        ],
-        axis=1,
-    )
+    plot_data = train_data[["HOME_WL"] + cols_to_plot]
     pair_grid = sns.pairplot(
         data=plot_data,
+        x_vars=cols_to_plot,
+        kind="kde",
         hue="HOME_WL",
         diag_kws={"common_norm": False},
         height=3,
         aspect=1,
+        corner=True,
     )
     out_file_name = os.path.join(out_dir, "feature_pair_plot.png")
     logger.info(f"Saving plot to: {out_file_name}")
@@ -123,14 +121,22 @@ def feature_pair_plot(train_data: pd.DataFrame, out_dir: str) -> None:
 
 
 def plot_team_skill(
-    connection: sqlite3.Connection, algo: str, teams_to_plot: List[str], out_dir: str
+    connection: sqlite3.Connection,
+    algo: str,
+    teams_to_plot: List[str],
+    cut_n_games: int,
+    out_dir: str,
 ) -> None:
-    """_summary_
+    """Plot the values for the elo {algo} for a selection of
+    teams_to_plot with respect to time
 
     Args:
         connection (sqlite3.Connection): Connection to SQL database
         algo (str): Which rating to plot, e.g. ELO or trueskill_mu
         teams_to_plot (List[str]): List of team names which should be plotted
+        cut_n_games (int): marks the position that corresponds to the cut_n_games
+        variable. This variable ensures that only games are
+        used after the elo scores have settled in.
         out_dir (str): plots will be saved to the path of this directory
     """
     data: pd.DataFrame = pd.DataFrame()
@@ -152,8 +158,9 @@ def plot_team_skill(
         if data.empty:
             data = team_data.loc[:, ["GAME_DATE", "team_name", algo]].copy()
         else:
+            # TODO check what .copy does here
             data = pd.concat(
-                [data, team_data.loc[:, ["GAME_DATE", "team_name", algo]]],
+                [data, team_data.loc[:, ["GAME_DATE", "team_name", algo]].copy()],
                 ignore_index=True,
             )
     data["GAME_DATE"] = pd.to_datetime(data["GAME_DATE"])
@@ -161,13 +168,15 @@ def plot_team_skill(
     sns.lineplot(data=data, x="GAME_DATE", y=algo, hue="team_name", ax=ax)
     myFmt = mdates.DateFormatter("%Y")
     ax.xaxis.set_major_formatter(myFmt)
+    ax.axvline(x=data.iloc[cut_n_games]["GAME_DATE"], color="red")
+
     out_file_name = os.path.join(out_dir, f"team_{algo}_plot.png")
     logger.info(f"Saving plot to: {out_file_name}")
     fig.savefig(out_file_name)
 
 
 def plot_league_skill_distribution(
-    connection: sqlite3.Connection, algo: str, out_dir: str
+    connection: sqlite3.Connection, algo: str, cut_n_games: int, out_dir: str
 ) -> None:
     """Plots the skill distribution for a given algo
     and each season in the trianings data. The median is
@@ -176,6 +185,7 @@ def plot_league_skill_distribution(
     Args:
         connection (sqlite3.Connection): Connection to SQL database
         algo (str): Which rating to plot, e.g. ELO or trueskill_mu
+        cut_n_games (int): ignores the first {cut_n_games} games in the data of
         out_dir (str): plots will be saved to the path of this directory
     """
     team_names = pd.read_sql(
@@ -194,6 +204,7 @@ def plot_league_skill_distribution(
                 WHERE HOME_TEAM_NAME='{team_name}' OR AWAY_TEAM_NAME='{team_name}'""",
                 connection,
             )
+            team_data = team_data[cut_n_games:]
             team_data["team_name"] = team_name
             team_data[algo] = team_data.apply(
                 lambda row: row[f"HOME_{algo}"]
@@ -253,22 +264,55 @@ def main(config: Dict[str, Any]) -> None:
     connection = sqlite3.connect(config["sql_db_path"])
     train_data = pd.read_sql("SELECT * from train_data", connection)
 
-    for algo in ["ELO", "trueskill_mu"]:
+    for algo in ["ELO", "trueskill_mu", "FTE_ELO"]:
+        if "HOME_" + algo not in train_data.columns:
+            logger.warning(
+                f"""HOME_{algo} is not in the trainings data. Will not
+                run plot_team_skill or plot_league_skill_distribution.
+                To get this variable add it to
+                the config[create_trainings_data][feature_list]"""
+            )
+            continue
         plot_team_skill(
             connection,
             algo,
             config["plot_train_data"]["teams_to_plot"],
+            int(config["plot_train_data"]["cut_n_games"] / 15),  # dividing by 15
+            # because for 15 games each team has played 1 game on average.
             config["output_dir"],
         )
-        plot_league_skill_distribution(connection, algo, config["output_dir"])
+        plot_league_skill_distribution(
+            connection,
+            algo,
+            int(config["plot_train_data"]["cut_n_games"] / 15),
+            config["output_dir"],
+        )
 
     add_random_probs(train_data)
-    for prob in ["HOME_ELO_winprob", "HOME_trueskill_winprob", "random_winprob"]:
-        pred_vs_actual_prob_comparison(train_data, prob, config["output_dir"])
+    for prob in [
+        "HOME_ELO_winprob",
+        "HOME_trueskill_winprob",
+        "HOME_FTE_ELO_winprob",
+        "random_winprob",
+    ]:
+        pred_vs_actual_prob_closure(
+            train_data[config["plot_train_data"]["cut_n_games"] :],
+            prob,
+            config["output_dir"],
+        )
 
     for method in ["pearson", "kendall", "spearman"]:
-        feature_correlation(train_data, method, config["output_dir"])
-    # feature_pair_plot(train_data, config["output_dir"])
+        feature_correlation(
+            train_data,
+            config["plot_train_data"]["correlation_features"],
+            method,
+            config["output_dir"],
+        )
+    feature_pair_plot(
+        train_data,
+        config["plot_train_data"]["pair_plot_features"],
+        config["output_dir"],
+    )
     connection.close()
 
 

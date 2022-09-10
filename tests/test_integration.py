@@ -1,5 +1,4 @@
 import pytest
-import requests
 
 from nba_game_prediction import config_modul
 from nba_game_prediction.scripts import (
@@ -10,21 +9,10 @@ from nba_game_prediction.scripts import (
 )
 
 
-def test_pass_dummy():
-    assert True
-
-
-def test_fail_dummy():
-    assert False
-
-
-def test_request():
-    r = requests.get("https://realpython.com/pytest-python-testing/")
-    r_html = r.text
-    assert r_html
-
-
-@pytest.mark.integration
+# TODO nba_api has blacklisted github actions so can't test this.
+# The test needs to be run locally and the output has to be saved to the repo
+# with git lfs. Should move SQL db to MS Azure cloud
+@pytest.mark.not_with_ga
 def test_collect_game_data():
     collect_game_data.main(config_modul.load_config("data/test_config.yaml"))
 

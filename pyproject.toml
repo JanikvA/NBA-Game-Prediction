@@ -22,7 +22,6 @@ scikit-learn = "^1.1.2"
 aquarel = "^0.0.4"
 mypy = "^0.971"
 beautifulsoup4 = "^4.11.1"
-selenium = "^4.4.3"
 llvmlite = "^0.39.1"
 numba = "^0.56.2"
 shap = "^0.41.0"
@@ -54,11 +53,15 @@ testpaths =  "tests"
 pythonpath = "nba_game_prediction"
 filterwarnings = ["ignore::DeprecationWarning:seaborn.*:","ignore::DeprecationWarning:distutils.*:"]
 markers = [
+	"not_with_ga: This test cannot be run with github actions",
 	"integration: Integration test. These can be slow (deselect with '-m \"not integration\"')"
 ]
 
 [tool.isort]
 profile = "black"
+
+[tool.pycodestyle]
+
 
 [tool.mypy]
 ignore_missing_imports = true

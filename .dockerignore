@@ -6,3 +6,5 @@ __pycache__
 tests/test_output/
 output/
 *.db
+!/data/nba_elo.csv
+!/tests/test_output/data/nba_games.db

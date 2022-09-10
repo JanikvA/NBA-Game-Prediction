@@ -16,24 +16,28 @@ def main(config: Dict[str, Any]) -> None:
     connection = sqlite3.connect(config["sql_db_path"])
     data = pd.read_sql("SELECT * from train_data", connection)
     connection.close()
-    data = data.dropna(how="any")
+    # data = data.dropna(how="any")
     # The ELO/trueskill ratings need some phase in the beginning to have meaningful values
-    # which is why the first 1000 games of the training data are being removed here
-    skip_first_n = 1000
+    # which is why some of the first games of the training data are being removed here
+    skip_first_n = config["train_model"]["cut_n_games"]
     if len(data) < skip_first_n:
-        skip_first_n = int(len(data) / 2)
+        raise Exception(
+            f"""Not enough games ({len(data)}) to skip {skip_first_n} games!
+            Adjust cut_n_games under train_model in the {config['config_path']}"""
+        )
     logger.info(f"Dropping the first {skip_first_n} of the total {len(data)} games")
     data = data[skip_first_n:]
     y = data["HOME_WL"]
+
     data["ELO_difference"] = data.apply(
         lambda row: row["HOME_ELO"] - row["AWAY_ELO"], axis=1
     )
     data["trueskill_mu_difference"] = data.apply(
         lambda row: row["HOME_trueskill_mu"] - row["AWAY_trueskill_mu"], axis=1
     )
-    data["trueskill_sigma_sum"] = data.apply(
-        lambda row: row["HOME_trueskill_sigma"] + row["AWAY_trueskill_sigma"], axis=1
-    )
+    # data["trueskill_sigma_sum"] = data.apply(
+    #     lambda row: row["HOME_trueskill_sigma"] + row["AWAY_trueskill_sigma"], axis=1
+    # )
     logger.info(f"Home team win rate: {y.mean()}")
 
     higher_elo_wr = data[
@@ -47,16 +51,7 @@ def main(config: Dict[str, Any]) -> None:
     ]["HOME_WL"].count() / len(data)
     logger.info(f"Team with higher trueskill_mu win rate: {higher_trueskill_wr}")
     x = data.drop(["HOME_WL"], axis=1)
-    x = x.loc[
-        :,
-        [
-            "ELO_difference",
-            "trueskill_mu_difference",
-            "trueskill_sigma_sum",
-            "HOME_is_back_to_back",
-            "AWAY_is_back_to_back",
-        ],
-    ]
+    x = x[config["train_model"]["feature_list"]]
     logger.info(f"Features used in the models: {', '.join(x.columns)}")
     x_train, x_test, y_train, y_test = model_selection.train_test_split(
         x, y, test_size=0.2

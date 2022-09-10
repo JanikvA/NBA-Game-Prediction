@@ -1,29 +1,67 @@
-logging_level: DEBUG
 data_dir: tests/test_output/data
 sql_db_path: tests/test_output/data/nba_games.db
 output_dir: tests/test_output/output
+logging_file: tests/test_output/output/output.log
+logging_level: DEBUG
 
 collect_game_data:
   seasons:
-    - 2006-07
-    - 2007-08
+    - 2012-13
+    - 2013-14
   season_types:
     - Regular Season
     - Playoffs
 
 create_train_data:
+  # FTE: FiveThirtyEight
+  FTE_csv_path: data/nba_elo.csv
   # HOME_WL, TEAM_NAME, GAME_DATE, GAME_ID, is_Playoffs, and SEASON_ID will always be saved
   # the following features will be saved for both the HOME and the AWAY team
   feature_list:
-    - trueskill_winprob
-    - trueskill_mu
-    - trueskill_sigma
     - ELO_winprob
-    - ELO
+    - trueskill_winprob
+    - FTE_ELO_winprob
     - is_back_to_back
+    - fraction_total_payroll
+    - ELO
+    - trueskill_mu
+    - FTE_ELO
+    - payroll_oppo_ratio
 
 plot_train_data:
+  # cuts out the earliest {cut_n_games} games to give the elo algorithms time to settle
+  cut_n_games: 1000
   teams_to_plot:
+    - Miami Heat
+    - San Antonio Spurs
     - Golden State Warriors
     - Cleveland Cavaliers
     - Los Angeles Lakers
+  correlation_features:
+    - HOME_WL
+    - HOME_trueskill_winprob
+    - HOME_ELO_winprob
+    - HOME_FTE_ELO_winprob
+    - HOME_payroll_oppo_ratio
+    - HOME_is_back_to_back
+    - AWAY_is_back_to_back
+    - is_Playoffs
+    - random_winprob
+
+  pair_plot_features:
+    - HOME_trueskill_winprob
+    - HOME_ELO_winprob
+    - HOME_FTE_ELO_winprob
+    - HOME_payroll_oppo_ratio
+    - random_winprob
+
+train_model:
+  cut_n_games: 1000
+  feature_list:
+    - HOME_trueskill_winprob
+    - HOME_FTE_ELO_winprob
+    - HOME_ELO_winprob
+    - HOME_payroll_oppo_ratio
+    - HOME_is_back_to_back
+    - AWAY_is_back_to_back
+    - is_Playoffs

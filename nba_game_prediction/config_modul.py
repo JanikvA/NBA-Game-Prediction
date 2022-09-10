@@ -58,10 +58,12 @@ def load_config(path_to_config: str) -> Dict[str, Any]:
     logger.info(f"Loading config from {path_to_config}")
     with open(path_to_config, "r") as config_file:
         config = yaml.safe_load(config_file)
+    config["config_path"] = path_to_config
     setup(config)
     logger.remove()
     logger.add(sys.stderr, level=config["logging_level"])
+    logger.add(config["logging_file"], level=config["logging_level"], rotation="2 MB")
     from rich.traceback import install
 
-    install(show_locals=True, suppress=[pd, sns])
+    install(show_locals=False, suppress=[pd, sns])
     return config

@@ -16,4 +16,4 @@ tests:
 	pytest -m "not integration"
 
 integration:
-	pytest -m "integration" --durations=5
+	pytest -m "integration or not_with_ga" --durations=5

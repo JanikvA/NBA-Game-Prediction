@@ -28,9 +28,9 @@ jobs:
       with:
         image: janikvapp/nba-game-prediction:latest
         run: |
-          poetry run pytest -m "not integration"
+          poetry run pytest -m "not not_with_ga"
     - name: Upload test outputs
       uses: actions/upload-artifact@v3
       with:
         name: test_output
-        path: tests/test_output/
+        path: tests/test_output/output/

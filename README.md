@@ -1,5 +1,10 @@
 ## Introduction
 
+## Data sources
+ FiveThirtyEight
+    - https://datahub.io/five-thirty-eight/nba-elo#readme
+    - https://fivethirtyeight.com/features/how-we-calculate-nba-elo-ratings/
+
 ## Dependencies
 
 - python 3.10
