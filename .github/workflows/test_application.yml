@@ -19,7 +19,7 @@ jobs:
 
   run-tests:
     needs: publish-docker
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     # container: janikvapp/nba-game-prediction:latest
 
     steps:
