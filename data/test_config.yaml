@@ -58,10 +58,7 @@ plot_train_data:
 train_model:
   cut_n_games: 1000
   feature_list:
-    - HOME_trueskill_winprob
     - HOME_FTE_ELO_winprob
-    - HOME_ELO_winprob
-    - HOME_payroll_oppo_ratio
     - HOME_is_back_to_back
     - AWAY_is_back_to_back
     - is_Playoffs
