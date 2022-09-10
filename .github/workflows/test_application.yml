@@ -28,6 +28,7 @@ jobs:
       with:
         image: janikvapp/nba-game-prediction:latest
         run: |
+          echo "$(ls -R)" &&
           poetry run pytest -m "not not_with_ga"
     - name: Upload test outputs
       uses: actions/upload-artifact@v3
