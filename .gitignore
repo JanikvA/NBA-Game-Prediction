@@ -7,3 +7,4 @@ output/
 *.db
 .tags
 *.log
+!data/nba_elo.csv
