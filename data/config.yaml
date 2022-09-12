@@ -37,19 +37,37 @@ create_train_data:
   # HOME_WL, TEAM_NAME, GAME_DATE, GAME_ID, is_Playoffs, and SEASON_ID will always be saved
   # the following features will be saved for both the HOME and the AWAY team
   feature_list:
-    - ELO_winprob
-    - trueskill_winprob
-    - FTE_ELO_winprob
     - is_back_to_back
     - fraction_total_payroll
     - ELO
+    - ELO_winprob
     - trueskill_mu
+    - trueskill_winprob
     - FTE_ELO
+    - FTE_ELO_winprob
     - payroll_oppo_ratio
+    - won_last_game
+  mean_over_last_N_games: 20
+  mean_features:
+    - WL
+    - ELO_mean
+    - ELO_mean_change
+    - trueskill_mu_mean
+    - trueskill_mu_mean_change
+    - FTE_ELO_mean
+    - FTE_ELO_mean_change
+    - PTS1_frac
+    - FT_PCT
+    - PTS2_frac
+    - FG2_PCT
+    - PTS3_frac
+    - FG3_PCT
+    - PTS_oppo_ratio
+
 
 plot_train_data:
   # cuts out the earliest {cut_n_games} games to give the elo algorithms time to settle
-  cut_n_games: 1000
+  cut_n_games: 100
   teams_to_plot:
     - Miami Heat
     - San Antonio Spurs
@@ -62,17 +80,26 @@ plot_train_data:
     - HOME_ELO_winprob
     - HOME_FTE_ELO_winprob
     - HOME_payroll_oppo_ratio
-    - HOME_is_back_to_back
     - AWAY_is_back_to_back
     - is_Playoffs
     - random_winprob
+    - HOME_won_last_game
+    - HOME_PTS3_frac_20G
+    - HOME_FG3_PCT_20G
+    - HOME_PTS_oppo_ratio_20G
+    - HOME_FTE_ELO_mean_change_20G
+    - HOME_WL_20G
 
   pair_plot_features:
     - HOME_trueskill_winprob
     - HOME_ELO_winprob
     - HOME_FTE_ELO_winprob
-    - HOME_payroll_oppo_ratio
     - random_winprob
+    - HOME_PTS_oppo_ratio_20G
+    - HOME_FTE_ELO_mean_change_20G
+    - HOME_PTS3_frac_20G
+    - HOME_FG3_PCT_20G
+    - HOME_WL_20G
 
 train_model:
   cut_n_games: 1000
@@ -81,3 +108,23 @@ train_model:
     - HOME_is_back_to_back
     - AWAY_is_back_to_back
     - is_Playoffs
+    - HOME_won_last_game
+    - HOME_FTE_ELO_mean_change_20G
+    - HOME_PTS1_frac_20G
+    - HOME_FT_PCT_20G
+    - HOME_PTS2_frac_20G
+    - HOME_FG2_PCT_20G
+    - HOME_PTS3_frac_20G
+    - HOME_FG3_PCT_20G
+    - HOME_PTS_oppo_ratio_20G
+    - HOME_WL_20G
+    - AWAY_won_last_game
+    - AWAY_FTE_ELO_mean_change_20G
+    - AWAY_PTS1_frac_20G
+    - AWAY_FT_PCT_20G
+    - AWAY_PTS2_frac_20G
+    - AWAY_FG2_PCT_20G
+    - AWAY_PTS3_frac_20G
+    - AWAY_FG3_PCT_20G
+    - AWAY_PTS_oppo_ratio_20G
+    - AWAY_WL_20G

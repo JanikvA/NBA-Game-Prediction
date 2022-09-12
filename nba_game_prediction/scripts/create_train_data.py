@@ -103,6 +103,77 @@ class NBATeam:
             data[k + "_mean"] = data.pop(k)
         return data
 
+    def get_mean_features(self, date, games_back):
+        last_N_games = self.get_last_N_games(date, games_back).copy()
+        last_N_games["FG2M"] = pd.to_numeric(
+            (
+                (last_N_games["PTS"] - 3 * last_N_games["FG3M"] - last_N_games["FTM"])
+                / 2
+            ),
+            downcast="integer",
+        )
+        last_N_games["FG2A"] = last_N_games["FGA"] - last_N_games["FG3A"]
+        last_N_games["FG2_PCT"] = last_N_games["FG2M"] / last_N_games["FG2A"]
+
+        last_N_games["PTS1_frac"] = last_N_games["FTM"] / last_N_games["PTS"]
+        last_N_games["PTS2_frac"] = last_N_games["FG2M"] * 2 / last_N_games["PTS"]
+        last_N_games["PTS3_frac"] = last_N_games["FG3M"] * 3 / last_N_games["PTS"]
+        data = (
+            last_N_games[
+                [
+                    "WL",
+                    "FT_PCT",
+                    "FG2_PCT",
+                    "FG3_PCT",
+                    "PTS1_frac",
+                    "PTS2_frac",
+                    "PTS3_frac",
+                    "PTS_oppo_ratio",
+                ]
+            ]
+            .mean()
+            .to_dict()
+        )
+        for k in list(data.keys()):
+            data[k + f"_{games_back}G"] = data.pop(k)
+        for algo in ["ELO", "FTE_ELO", "trueskill_mu"]:
+            if len(last_N_games) > 0:
+                # FIXME not quite correct. not including the elo of the current atm but it should
+                data[f"{algo}_mean_change_{games_back}G"] = (
+                    last_N_games.iloc[-1][algo] - last_N_games.iloc[0][algo]
+                ) / len(last_N_games)
+                data[f"{algo}_mean_{games_back}G"] = last_N_games[algo].mean()
+            else:
+                data[f"{algo}_mean_change_{games_back}G"] = np.nan
+                data[f"{algo}_mean_{games_back}G"] = np.nan
+        return data
+
+    def get_features(self, date):
+        data = {}
+        previous_game = self.get_last_N_games(date, 1)
+        if len(previous_game) > 0:
+            data["won_last_game"] = previous_game["WL"].iloc[-1]
+        else:
+            data["won_last_game"] = np.nan
+        if date not in self.games.index:
+            logger.warning(f"No Game was played on the given date ({date})!")
+        else:
+            day_before = date - datetime.timedelta(days=1)
+            data["is_back_to_back"] = int(day_before in previous_game)
+            for key in [
+                "ELO",
+                "ELO_winprob",
+                "trueskill_mu",
+                "trueskill_sigma",
+                "trueskill_winprob",
+                "fraction_total_payroll",
+                "payroll_oppo_ratio",
+                "FTE_ELO",
+                "FTE_ELO_winprob",
+            ]:
+                data[key] = self.games.loc[date][key]
+        return data
+
     def get_stats_for_date(
         self, date: datetime.datetime, games_back: int = 10
     ) -> Dict[str, Any]:
@@ -116,28 +187,8 @@ class NBATeam:
         Returns:
             Dict[str, Any]: key: stat name - value: value
         """
-        last_ten_games = self.get_last_N_games(date, games_back)
-        data = last_ten_games.mean(numeric_only=True).to_dict()
-        for k in list(data.keys()):
-            data[k + f"_{games_back}G"] = data.pop(k)
-        if date not in self.games.index:
-            logger.warning(f"No Game was played on the given date ({date})!")
-        else:
-            day_before = date - datetime.timedelta(days=1)
-            data["is_back_to_back"] = int(day_before in self.games)
-            for key in [
-                "ELO",
-                "ELO_winprob",
-                "trueskill_mu",
-                "trueskill_sigma",
-                "trueskill_winprob",
-                "fraction_total_payroll",
-                "payroll_oppo_ratio",
-                "FTE_ELO",
-                "FTE_ELO_winprob",
-            ]:
-                data[key] = self.games.loc[date][key]
-
+        data = self.get_mean_features(date, games_back)
+        data = {**data, **self.get_features(date)}
         return data
 
     def get_last_N_games(
@@ -154,6 +205,11 @@ class NBATeam:
         """
         games_before = self.games[self.games.index < date]
         return games_before.head(n_games)
+
+    @classmethod
+    def reset_trueskill_sigma(cls, new_sigma=4):
+        for name, team in cls.nba_teams.items():
+            team.trueskill = trueskill.Rating(team.trueskill.mu, new_sigma)
 
     @classmethod
     def get_opposite_home_away(cls, home_away: str) -> str:
@@ -214,6 +270,9 @@ def extract_game_data(
         team_data_dic[ha]["trueskill_winprob"] = elo_modul.trueskill_win_probability(
             team_obj_dic[ha].trueskill, team_obj_dic[opposite_ha].trueskill
         )
+        team_data_dic[ha]["PTS_oppo_ratio"] = (
+            game_data["PTS" + "_" + ha] / game_data["PTS" + "_" + opposite_ha]
+        )
 
         if not FTE_data.empty:
             (
@@ -254,7 +313,7 @@ def pick_FTE_game_data(
             found_game = True
         elif row["team2"] == team_abbrv:
             FTE_elo = row["elo2_pre"]
-            FTE_elo_winprob = FTE_data_game_day["elo_prob2"]
+            FTE_elo_winprob = row["elo_prob2"]
             found_game = True
     if found_game:
         return FTE_elo, FTE_elo_winprob
@@ -310,7 +369,11 @@ def fill_team_game_data(
     logger.info(f"Loading {len(games)} games for {len(NBATeam.nba_teams)} teams")
     with Progress() as progress:
         task = progress.add_task("[green]Loading game data...", total=len(games))
+        current_season = games.iloc[0]["SEASON"]
         for index, row in games.iterrows():
+            if current_season != row["SEASON"]:
+                NBATeam.reset_trueskill_sigma(4)
+                current_season = row["SEASON"]
             extract_game_data(row, FTE_data)
             progress.update(task, advance=1)
     for team_name, team in NBATeam.nba_teams.items():
@@ -319,7 +382,10 @@ def fill_team_game_data(
 
 
 def get_train_data_from_game(
-    game: pd.DataFrame, feature_list: List[str]
+    game: pd.DataFrame,
+    feature_list: List[str],
+    mean_features: List[str],
+    n_games_back: int,
 ) -> Dict[str, Any]:
     """Get the features relevant for model training from a game
 
@@ -336,9 +402,13 @@ def get_train_data_from_game(
         team = NBATeam.nba_teams[game[f"TEAM_NAME_{ha}"]]
         train_data_dict[f"{ha}_TEAM_NAME"] = game[f"TEAM_NAME_{ha}"]
         train_data_dict[f"{ha}_WL"] = int(game[f"WL_{ha}"])
-        tmp_dic[ha] = team.get_stats_for_date(game.name)
+        tmp_dic[ha] = team.get_stats_for_date(game.name, games_back=n_games_back)
         for feature in feature_list:
             train_data_dict[ha + "_" + feature] = tmp_dic[ha][feature]
+        for feature in mean_features:
+            train_data_dict[f"{ha}_{feature}_{n_games_back}G"] = tmp_dic[ha][
+                f"{feature}_{n_games_back}G"
+            ]
     for simple_int_feature in ["SEASON_ID", "SEASON", "GAME_ID"]:
         train_data_dict[simple_int_feature] = int(game[simple_int_feature])
     train_data_dict["is_Playoffs"] = int(game["SEASON_TYPE"] == "Playoffs")
@@ -347,7 +417,11 @@ def get_train_data_from_game(
 
 
 def create_train_data(
-    games: pd.DataFrame, sql_db_connection: sqlite3.Connection, feature_list: List[str]
+    games: pd.DataFrame,
+    sql_db_connection: sqlite3.Connection,
+    feature_list: List[str],
+    mean_features: List[str],
+    n_games_back: int,
 ) -> None:
     """Creates and saves the data used for training the models
 
@@ -362,7 +436,9 @@ def create_train_data(
     with Progress() as progress:
         task = progress.add_task("[green]Transforming game data...", total=len(games))
         for index, row in games.iterrows():
-            tmp = get_train_data_from_game(row, feature_list)
+            tmp = get_train_data_from_game(
+                row, feature_list, mean_features, n_games_back
+            )
             game_train_data = pd.DataFrame(tmp, index=[0])
             train_data = pd.concat([train_data, game_train_data], ignore_index=True)
             progress.update(task, advance=1)
@@ -382,7 +458,7 @@ def get_game_data(sql_db_connection: sqlite3.Connection) -> pd.DataFrame:
     Returns:
         pd.DataFrame: Contains data for all games
     """
-    games = pd.read_sql("SELECT * from NBA_games", sql_db_connection)
+    games = pd.read_sql("SELECT * from NBA_games LIMIT 200", sql_db_connection)
     games["SEASON"] = pd.to_numeric(games["SEASON"])
     games["GAME_DATE"] = pd.to_datetime(games["GAME_DATE"])
     games = games.set_index("GAME_DATE")
@@ -480,7 +556,13 @@ def main(config: Dict[str, Any]) -> None:
     fill_team_game_data(
         games, payroll_data, config["create_train_data"]["FTE_csv_path"]
     )
-    create_train_data(games, connection, config["create_train_data"]["feature_list"])
+    create_train_data(
+        games,
+        connection,
+        config["create_train_data"]["feature_list"],
+        config["create_train_data"]["mean_features"],
+        config["create_train_data"]["mean_over_last_N_games"],
+    )
     connection.close()
 
 

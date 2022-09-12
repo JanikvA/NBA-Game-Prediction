@@ -263,6 +263,9 @@ def main(config: Dict[str, Any]) -> None:
     theme.apply()
     connection = sqlite3.connect(config["sql_db_path"])
     train_data = pd.read_sql("SELECT * from train_data", connection)
+    len_all_games = len(train_data)
+    train_data = train_data.dropna()
+    logger.info(f"Dropped {len_all_games-len(train_data)} games because of NaNs")
 
     for algo in ["ELO", "trueskill_mu", "FTE_ELO"]:
         if "HOME_" + algo not in train_data.columns:
@@ -289,6 +292,7 @@ def main(config: Dict[str, Any]) -> None:
         )
 
     add_random_probs(train_data)
+
     for prob in [
         "HOME_ELO_winprob",
         "HOME_trueskill_winprob",
