@@ -458,7 +458,7 @@ def get_game_data(sql_db_connection: sqlite3.Connection) -> pd.DataFrame:
     Returns:
         pd.DataFrame: Contains data for all games
     """
-    games = pd.read_sql("SELECT * from NBA_games LIMIT 200", sql_db_connection)
+    games = pd.read_sql("SELECT * from NBA_games", sql_db_connection)
     games["SEASON"] = pd.to_numeric(games["SEASON"])
     games["GAME_DATE"] = pd.to_datetime(games["GAME_DATE"])
     games = games.set_index("GAME_DATE")

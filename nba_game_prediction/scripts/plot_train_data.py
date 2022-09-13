@@ -8,6 +8,7 @@ import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
+import uncertainties
 from aquarel import load_theme
 from loguru import logger
 
@@ -18,8 +19,12 @@ def add_random_probs(data: pd.DataFrame) -> None:
     data["random_winprob"] = data.apply(lambda row: random.uniform(0, 1), axis=1)
 
 
+def get_binominal_std_dev_on_prob(n, p):
+    return math.sqrt(n * p * (1 - p)) / n
+
+
 def pred_vs_actual_prob_closure(
-    train_data: pd.DataFrame, prob_key: str, out_dir: str
+    data: pd.DataFrame, prob_key: str, result_key: str, out_dir: str
 ) -> None:
     """Sorts games into bins based on the probability that the home team wins.
     Then calculates the ratio of the actual win rate for these
@@ -42,32 +47,35 @@ def pred_vs_actual_prob_closure(
     for n, lower_bound in enumerate(bins):
         if n + 1 == len(bins):
             break
-        b1 = train_data.loc[
-            (train_data[prob_key] > lower_bound) & (train_data[prob_key] < bins[n + 1])
+        bin_data = data.loc[
+            (data[prob_key] > lower_bound) & (data[prob_key] < bins[n + 1])
         ]
         bin_center = lower_bound + (bins[n + 1] - lower_bound) / 2
         x_data.append(bin_center)
-        y_pred_data.append(b1[prob_key].mean())
-        y_actual_data.append(b1["HOME_WL"].mean())
-        W = b1["HOME_WL"].count() * b1["HOME_WL"].mean()
-        L = b1["HOME_WL"].count() * (1 - b1["HOME_WL"].mean())
-        # from error propagation of W/(W+L)
-        unc = math.sqrt(
-            L**2 * math.sqrt(W) / (W + L) ** 4 + W**2 * math.sqrt(L) / (L + W) ** 4
-        )
-        y_err.append(unc / y_pred_data[-1])
-        ratio.append(y_actual_data[-1] / y_pred_data[-1])
-    fig, axs = plt.subplots(2, 1, figsize=(10, 6))
+        y_pred_data.append(bin_data[prob_key].mean())
+        y_actual_data.append(bin_data[result_key].mean())
+        # Using binominal distribution and propagation of uncertainty
+        # to calculate the ratio and it's uncertainty
+        p = bin_data[result_key].mean()
+        N = bin_data[result_key].count()
+        y_data_unc_obj = uncertainties.ufloat(p, get_binominal_std_dev_on_prob(N, p))
+        ratio_unc_obj = y_data_unc_obj / y_pred_data[-1]
+        y_err.append(ratio_unc_obj.std_dev)
+        ratio.append(ratio_unc_obj.nominal_value)
+
+    fig, axs = plt.subplots(2, 1, figsize=(10, 6), sharex=True)
     sns.histplot(
-        data=train_data,
+        data=data,
         x=prob_key,
-        hue="HOME_WL",
+        hue=result_key,
         bins=bins,
         multiple="stack",
         ax=axs[0],
     )
+    axs[0].set_title(f"{prob_key} closure")
     axs[1].errorbar(x=x_data, y=ratio, yerr=y_err, color="black")
     axs[1].set_ylabel("Ratio of win probabilities (prediction/actual)")
+    axs[1].set_xlabel("HOME win probability")
     out_file_name = os.path.join(out_dir, "probability_comparison_" + prob_key + ".png")
     logger.info(f"Saving plot to: {out_file_name}")
     fig.savefig(out_file_name)
@@ -105,19 +113,15 @@ def feature_pair_plot(
         out_dir (str): plots will be saved to the path of this directory
     """
     plot_data = train_data[["HOME_WL"] + cols_to_plot]
-    pair_grid = sns.pairplot(
-        data=plot_data,
-        x_vars=cols_to_plot,
-        kind="kde",
-        hue="HOME_WL",
-        diag_kws={"common_norm": False},
-        height=3,
-        aspect=1,
-        corner=True,
+
+    df = pd.melt(plot_data, plot_data.columns[0], plot_data.columns[1:])
+    g = sns.FacetGrid(
+        df, col="variable", hue="HOME_WL", col_wrap=3, sharex=False, sharey=False
     )
+    g.map(sns.kdeplot, "value", shade=True)
     out_file_name = os.path.join(out_dir, "feature_pair_plot.png")
     logger.info(f"Saving plot to: {out_file_name}")
-    pair_grid.savefig(out_file_name)
+    g.savefig(out_file_name)
 
 
 def plot_team_skill(
@@ -302,6 +306,7 @@ def main(config: Dict[str, Any]) -> None:
         pred_vs_actual_prob_closure(
             train_data[config["plot_train_data"]["cut_n_games"] :],
             prob,
+            "HOME_WL",
             config["output_dir"],
         )
 
@@ -312,6 +317,7 @@ def main(config: Dict[str, Any]) -> None:
             method,
             config["output_dir"],
         )
+
     feature_pair_plot(
         train_data,
         config["plot_train_data"]["pair_plot_features"],
