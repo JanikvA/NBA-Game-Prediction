@@ -17,20 +17,19 @@ jobs:
       - name: Push the tagged Docker image
         run: docker push janikvapp/nba-game-prediction:latest
 
-  # run-tests:
-  #   needs: publish-docker
-  #   runs-on: ubuntu-20.04
-  #   # container: janikvapp/nba-game-prediction:latest
-  #   steps:
-  #   - name: Test with pytest
-  #     uses: addnab/docker-run-action@v3
-  #     with:
-  #       image: janikvapp/nba-game-prediction:latest
-  #       run: |
-  #         echo "$(ls -R)" &&
-  #         poetry run pytest -m "not not_with_ga"
-  #   - name: Upload test outputs
-  #     uses: actions/upload-artifact@v3
-  #     with:
-  #       name: test_output
-  #       path: tests/test_output/output/
+  run-tests:
+    needs: publish-docker
+    runs-on: ubuntu-20.04
+    # container: janikvapp/nba-game-prediction:latest
+    steps:
+    - name: Test with pytest
+      uses: addnab/docker-run-action@v3
+      with:
+        image: janikvapp/nba-game-prediction:latest
+        run: |
+          poetry run pytest -m "(not integration) and (not not_with_ga)"
+    - name: Upload test outputs
+      uses: actions/upload-artifact@v3
+      with:
+        name: test_output
+        path: tests/test_output/output/
