@@ -169,6 +169,9 @@ def main(config: dict) -> None:
 
             time.sleep(1)
 
+    logger.info(
+        f"The scraped games have the following columns: {all_games.columns.values}"
+    )
     combined_games = combine_team_games(all_games)
     time.sleep(1)
 

@@ -13,7 +13,7 @@ format:
 	docformatter --in-place **/*.py
 
 tests:
-	pytest -m "not integration"
+	pytest -m "(not integration) and (not not_with_ga)"
 
 integration:
 	pytest -m "integration or not_with_ga" --durations=5
