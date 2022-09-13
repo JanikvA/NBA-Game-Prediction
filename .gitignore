@@ -8,3 +8,4 @@ output/
 .tags
 *.log
 !data/nba_elo.csv
+.coverage

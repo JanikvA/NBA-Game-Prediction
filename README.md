@@ -1,30 +1,80 @@
+# NBA game predictions
+
 ## Introduction
 
-## Data sources
- FiveThirtyEight
+## How are other people solving this problem?
+
+## Methods
+
+### Data sources
+FiveThirtyEight
     - https://datahub.io/five-thirty-eight/nba-elo#readme
     - https://fivethirtyeight.com/features/how-we-calculate-nba-elo-ratings/
     - https://projects.fivethirtyeight.com/nba-model/nba_elo_latest.csv
+nba_api
+payroll salary
 
-## Dependencies
+### Features
+
+### Models
+
+## Results
+
+## Conclusion
+
+---------
+
+
+<details>
+  <summary>Getting Started</summary>
+
+### Dependencies
 
 - python 3.10
 - python poetry
 
-## Setup
+### Setup
 
 ```bash
 poetry install
-poetry shell
 pre-commit install
 ```
 
-## Publishing to DockerHub
+### Docker
 
-Needs github-cli (e.g. from AUR)
+A Docker image is also available:
 
 ```bash
-gh workflow run publish-docker
+docker pull janikvapp/nba-game-prediction:latest
 ```
 
-## Getting Started
+### Getting Started
+
+Scripts should be run in the following order:
+
+```bash
+poetry shell
+python nba_game_prediction/scripts/collect_game_data.py
+python nba_game_prediction/scripts/create_train_data.py
+python nba_game_prediction/scripts/plot_train_data.py
+python nba_game_prediction/scripts/train_model.py
+```
+
+Running plot_train_data.py is optional
+Most Configuration can be done using the config file in `data/config.yaml`
+
+### Testing
+
+Only running unit tests:
+
+```bash
+make tests
+```
+
+Running integration tests (this is slow):
+
+```bash
+make integration
+```
+
+</details>
