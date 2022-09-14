@@ -6,6 +6,7 @@ from typing import Any, Dict, List
 
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import seaborn as sns
 import uncertainties
@@ -94,7 +95,18 @@ def feature_correlation(
     """
     plot_data = train_data[cols_to_plot]
     fig, ax = plt.subplots(figsize=(20, 15))
-    sns.heatmap(plot_data.corr(method=method), vmin=-1, vmax=1, annot=True, ax=ax)
+    cmap = sns.diverging_palette(0, 230, 90, 60, as_cmap=True)
+    mask = np.triu(np.ones_like(plot_data.corr()))[1:, :-1]
+    sns.heatmap(
+        plot_data.corr(method=method).iloc[1:, :-1],
+        vmin=-1,
+        vmax=1,
+        annot=True,
+        ax=ax,
+        mask=mask,
+        fmt=".2f",
+        cmap=cmap,
+    )
     out_file_name = os.path.join(out_dir, "feature_correlation_" + method + ".png")
     logger.info(f"Saving plot to: {out_file_name}")
     fig.savefig(out_file_name)
@@ -269,6 +281,9 @@ def main(config: Dict[str, Any]) -> None:
     train_data = pd.read_sql("SELECT * from train_data", connection)
     len_all_games = len(train_data)
     train_data = train_data.dropna()
+    train_data["AWAY_is_back_to_back"] = pd.to_numeric(
+        train_data["AWAY_is_back_to_back"]
+    )
     logger.info(f"Dropped {len_all_games-len(train_data)} games because of NaNs")
 
     for algo in ["ELO", "trueskill_mu", "FTE_ELO"]:

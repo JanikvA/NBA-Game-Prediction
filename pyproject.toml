@@ -27,6 +27,8 @@ numba = "^0.56.2"
 shap = "^0.41.0"
 xgboost = "^1.6.2"
 uncertainties = "^3.1.7"
+PyQt5 = "^5.15.7"
+matplotlib-label-lines = "^0.5.1"
 
 [tool.poetry.dev-dependencies]
 black = "^22.6.0"

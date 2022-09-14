@@ -115,6 +115,8 @@ class NBATeam:
         last_N_games["FG2A"] = last_N_games["FGA"] - last_N_games["FG3A"]
         last_N_games["FG2_PCT"] = last_N_games["FG2M"] / last_N_games["FG2A"]
 
+        last_N_games["FGM_AST_frac"] = last_N_games["AST"] / last_N_games["FGM"]
+
         last_N_games["PTS1_frac"] = last_N_games["FTM"] / last_N_games["PTS"]
         last_N_games["PTS2_frac"] = last_N_games["FG2M"] * 2 / last_N_games["PTS"]
         last_N_games["PTS3_frac"] = last_N_games["FG3M"] * 3 / last_N_games["PTS"]
@@ -129,6 +131,7 @@ class NBATeam:
                     "PTS2_frac",
                     "PTS3_frac",
                     "PTS_oppo_ratio",
+                    "FGM_AST_frac",
                 ]
             ]
             .mean()
@@ -159,7 +162,10 @@ class NBATeam:
             logger.warning(f"No Game was played on the given date ({date})!")
         else:
             day_before = date - datetime.timedelta(days=1)
-            data["is_back_to_back"] = int(day_before in previous_game)
+            if len(previous_game) > 0:
+                data["is_back_to_back"] = int(day_before in previous_game.index.values)
+            else:
+                data["is_back_to_back"] = np.nan
             for key in [
                 "ELO",
                 "ELO_winprob",

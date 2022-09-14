@@ -63,6 +63,7 @@ create_train_data:
     - PTS3_frac
     - FG3_PCT
     - PTS_oppo_ratio
+    - FGM_AST_frac
 
 
 plot_train_data:
@@ -80,13 +81,14 @@ plot_train_data:
     - HOME_payroll_oppo_ratio
     - AWAY_is_back_to_back
     - is_Playoffs
-    - random_winprob
     - HOME_won_last_game
     - HOME_PTS3_frac_20G
     - HOME_FG3_PCT_20G
+    - HOME_FGM_AST_frac_20G
     - HOME_PTS_oppo_ratio_20G
     - HOME_FTE_ELO_mean_change_20G
     - HOME_WL_20G
+    - random_winprob
 
   pair_plot_features:
     - HOME_trueskill_winprob
@@ -97,6 +99,7 @@ plot_train_data:
     - HOME_FTE_ELO_mean_change_20G
     - HOME_PTS3_frac_20G
     - HOME_FG3_PCT_20G
+    - HOME_FGM_AST_frac_20G
     - HOME_WL_20G
 
 train_model:
@@ -106,7 +109,7 @@ train_model:
     # - HOME_is_back_to_back
     # - AWAY_is_back_to_back
     - is_Playoffs
-    - HOME_won_last_game
+    # - HOME_won_last_game
     # - HOME_FTE_ELO_mean_change_20G
     # - HOME_PTS1_frac_20G
     # - HOME_FT_PCT_20G
@@ -116,7 +119,9 @@ train_model:
     # - HOME_FG3_PCT_20G
     - HOME_PTS_oppo_ratio_20G
     - HOME_WL_20G
-    - AWAY_won_last_game
+    # - AWAY_won_last_game
+    # - HOME_FGM_AST_frac_20G
+    # - AWAY_FGM_AST_frac_20G
     # - AWAY_FTE_ELO_mean_change_20G
     # - AWAY_PTS1_frac_20G
     # - AWAY_FT_PCT_20G

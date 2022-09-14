@@ -2,13 +2,16 @@ import os
 import sqlite3
 from typing import Any, Dict
 
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import shap
 import xgboost as xgb
 from aquarel import load_theme
+from labellines import labelLine
 from loguru import logger
+from scipy.stats.distributions import chi2
 from sklearn import metrics, model_selection, preprocessing
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
@@ -23,6 +26,86 @@ from nba_game_prediction.scripts.plot_train_data import (
 )
 
 
+def plot_accuracy_per_season(y_test, test_pred, seasons_series, name, out_dir):
+    acc_dict = {"season": [], "accuracy": [], "uncertainty": []}
+    for season in seasons_series.unique():
+        this_season_indices = seasons_series[seasons_series == season].index
+        this_season_indices = this_season_indices[
+            this_season_indices.isin(y_test.index)
+        ]
+        test_pred_season = pd.Series(data=test_pred, index=y_test.index)
+        test_pred_season = test_pred_season[this_season_indices]
+        y_test_season = y_test[this_season_indices]
+        acc = metrics.accuracy_score(y_test_season, test_pred_season)
+        acc_unc = get_binominal_std_dev_on_prob(len(y_test_season), acc)
+        acc_dict["season"].append(season)
+        acc_dict["accuracy"].append(acc)
+        acc_dict["uncertainty"].append(acc_unc)
+    season_accuracies = pd.DataFrame(acc_dict)
+
+    # chi2 code from: https://www.astroml.org/book_figures/chapter4/fig_chi2_eval.html
+    # compute the mean and the chi^2/dof
+    mean_acc = metrics.accuracy_score(y_test, test_pred)
+    z = (season_accuracies["accuracy"] - mean_acc) / season_accuracies["uncertainty"]
+    chi2_sum = np.sum(z**2)
+    chi2dof = chi2_sum / (len(season_accuracies) - 1)
+
+    # compute the standard deviations of chi^2/dof
+    sigma = np.sqrt(2.0 / (len(season_accuracies) - 1))
+    nsig = (chi2dof - 1) / sigma
+
+    p_value = chi2.sf(chi2_sum, len(season_accuracies) - 1)
+    logger.info(f"{chi2_sum=:.2f}, {chi2dof=:.2f}, {sigma=:.2f}, {p_value=:.2f}")
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.errorbar(
+        data=season_accuracies,
+        x="season",
+        y="accuracy",
+        yerr="uncertainty",
+        fmt="o",
+        color="black",
+        ecolor="grey",
+        elinewidth=3,
+        capsize=5,
+    )
+    ax.xaxis.set_major_locator(mpl.ticker.MaxNLocator(integer=True))
+    ax.set_xlabel("Season")
+    ax.set_ylabel("Accuracy")
+    # labeLine doens't work wll with ax.axhline... so I have to do this
+    x_beg, x_end = min(acc_dict["season"]) - 1, max(acc_dict["season"]) + 1
+    x_middle = (x_beg + x_end) / 2
+    mean_acc_line = ax.plot([x_beg, x_end], [mean_acc, mean_acc], color="red")
+    labelLine(
+        mean_acc_line[0],
+        x=x_middle,
+        label="Mean accuracy",
+        color="red",
+        fontweight="bold",
+    )
+    ax.set_xlim(x_beg, x_end)
+    ax.text(
+        0.02,
+        0.02,
+        r"$\hat{\mu} = %.2f$" % mean_acc,
+        ha="left",
+        va="bottom",
+        transform=ax.transAxes,
+    )
+    ax.text(
+        0.98,
+        0.02,
+        f"$\chi^2_{{\\rm dof}} = {chi2dof:.2f}\, ({nsig:.1f}\,\sigma), p = {p_value:.2f}$",
+        ha="right",
+        va="bottom",
+        transform=ax.transAxes,
+    )
+    # r'$\chi^2_{\rm dof} = %.2f\, (%.1f\,\sigma)$' % (chi2dof, nsig),
+    out_file_name = os.path.join(out_dir, f"acc_per_season_{name}.png")
+    logger.info(f"Saving plot to: {out_file_name}")
+    fig.savefig(out_file_name)
+
+
 def train_xgb(x_train, y_train, x_test, y_test):
     param_grid = {
         "learning_rate": np.linspace(0.1, 0.9, 3),
@@ -34,7 +117,7 @@ def train_xgb(x_train, y_train, x_test, y_test):
     }
     # TODO scalar transform with pipeline
     model = model_selection.GridSearchCV(
-        xgb.XGBClassifier(), param_grid=param_grid, cv=5, verbose=True, n_jobs=-1
+        xgb.XGBClassifier(), param_grid=param_grid, cv=10, verbose=True, n_jobs=-1
     )
     model.fit(x_train, y_train)
     cv_res = model.cv_results_
@@ -44,13 +127,13 @@ def train_xgb(x_train, y_train, x_test, y_test):
     test_acc = metrics.accuracy_score(y_test, y_test_pred)
     logger.info(f"xgboost accuracy: {test_acc} ({train_acc})")
     for n in range(len(cv_res["params"])):
-        print("--------")
-        print(cv_res["params"][n])
-        print(
+        logger.debug("--------")
+        logger.debug(cv_res["params"][n])
+        logger.debug(
             f"{cv_res['mean_test_score'][n]:.3f} +- {cv_res['std_test_score'][n]:.3f}"
         )
-        print("--------")
-    print(f"Best parameters: {model.best_params_}")
+        logger.debug("--------")
+    logger.debug(f"Best parameters: {model.best_params_}")
     return model.best_estimator_
 
 
@@ -76,7 +159,7 @@ def plot_xgb(estimator, x_train, y_train, x_test, y_test, out_dir):
     plt.clf()
 
 
-def get_data(sql_db_path, cut_n_games, feature_list) -> Dict[str, Any]:
+def get_data(sql_db_path, cut_n_games) -> pd.DataFrame:
     connection = sqlite3.connect(sql_db_path)
     data = pd.read_sql("SELECT * from train_data", connection)
     connection.close()
@@ -104,15 +187,15 @@ def get_data(sql_db_path, cut_n_games, feature_list) -> Dict[str, Any]:
 
     home_team_wr = y.mean()
     higher_elo_wr = data[
-        ((data["ELO_difference"] > 0) & (data["HOME_WL"] == 1))
+        ((data["ELO_difference"] >= 0) & (data["HOME_WL"] == 1))
         | ((data["ELO_difference"] < 0) & (data["HOME_WL"] == 0))
     ]["HOME_WL"].count() / len(data)
     higher_trueskill_wr = data[
-        ((data["trueskill_mu_difference"] > 0) & (data["HOME_WL"] == 1))
+        ((data["trueskill_mu_difference"] >= 0) & (data["HOME_WL"] == 1))
         | ((data["trueskill_mu_difference"] < 0) & (data["HOME_WL"] == 0))
     ]["HOME_WL"].count() / len(data)
     higher_FTE_elo_wr = data[
-        ((data["HOME_FTE_ELO_winprob"] > 0.5) & (data["HOME_WL"] == 1))
+        ((data["HOME_FTE_ELO_winprob"] >= 0.5) & (data["HOME_WL"] == 1))
         | ((data["HOME_FTE_ELO_winprob"] < 0.5) & (data["HOME_WL"] == 0))
     ]["HOME_WL"].count() / len(data)
     win_rates = {
@@ -126,7 +209,12 @@ def get_data(sql_db_path, cut_n_games, feature_list) -> Dict[str, Any]:
             f"{description}: {wr:.1%} +- {get_binominal_std_dev_on_prob(len(data), wr):.1%}"
         )
 
+    return data
+
+
+def get_train_test(data: pd.DataFrame, feature_list) -> Dict[str, Any]:
     x = data.drop(["HOME_WL"], axis=1)
+    y = data["HOME_WL"]
     x = x[feature_list]
     y = y[x.index]
     logger.info(f"Features used in the models: {', '.join(x.columns)}")
@@ -139,7 +227,9 @@ def get_data(sql_db_path, cut_n_games, feature_list) -> Dict[str, Any]:
     return {"x_train": x_train, "y_train": y_train, "x_test": x_test, "y_test": y_test}
 
 
-def fit_and_plot_clf(name: str, clf, x_train, y_train, x_test, y_test, out_dir):
+def fit_and_plot_clf(
+    name: str, clf, x_train, y_train, x_test, y_test, seasons, out_dir
+):
     clf_transformed = make_pipeline(preprocessing.StandardScaler(), clf)
     clf_transformed.fit(x_train, y_train)
     vs = model_selection.cross_val_score(clf_transformed, x_train, y_train, cv=10)
@@ -152,16 +242,23 @@ def fit_and_plot_clf(name: str, clf, x_train, y_train, x_test, y_test, out_dir):
     )
     test_prob = clf_transformed.predict_proba(x_test)
     test_prob = test_prob[:, 1]
+    # TODO plot this for both test and trian data
     dummy_df = pd.DataFrame.from_dict({name: test_prob, "HOME_WL": y_test})
     pred_vs_actual_prob_closure(dummy_df, name, "HOME_WL", out_dir)
+    plot_accuracy_per_season(y_test, test_prediction, seasons, name, out_dir)
 
 
 def main(config: Dict[str, Any]) -> None:
+    mpl.use("agg")
     theme = load_theme("arctic_dark").set_overrides({"font.family": "monospace"})
     theme.apply()
-    train_test_data = get_data(
+    data = get_data(
         config["sql_db_path"],
         config["train_model"]["cut_n_games"],
+    )
+    seasons = data["SEASON"]
+    train_test_data = get_train_test(
+        data,
         config["train_model"]["feature_list"],
     )
 
@@ -174,10 +271,19 @@ def main(config: Dict[str, Any]) -> None:
         ),
     }
     for name, clf in classifier_dict.items():
-        fit_and_plot_clf(name, clf, **train_test_data, out_dir=config["output_dir"])
+        fit_and_plot_clf(
+            name, clf, **train_test_data, seasons=seasons, out_dir=config["output_dir"]
+        )
 
     estimator = train_xgb(**train_test_data)
     plot_xgb(estimator, **train_test_data, out_dir=config["output_dir"])
+    plot_accuracy_per_season(
+        train_test_data["y_test"],
+        estimator.predict(train_test_data["x_test"]),
+        seasons,
+        "xgboost",
+        config["output_dir"],
+    )
 
 
 if __name__ == "__main__":
