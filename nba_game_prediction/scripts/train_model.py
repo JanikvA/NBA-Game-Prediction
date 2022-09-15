@@ -100,7 +100,6 @@ def plot_accuracy_per_season(y_test, test_pred, seasons_series, name, out_dir):
         va="bottom",
         transform=ax.transAxes,
     )
-    # r'$\chi^2_{\rm dof} = %.2f\, (%.1f\,\sigma)$' % (chi2dof, nsig),
     out_file_name = os.path.join(out_dir, f"acc_per_season_{name}.png")
     logger.info(f"Saving plot to: {out_file_name}")
     fig.savefig(out_file_name)

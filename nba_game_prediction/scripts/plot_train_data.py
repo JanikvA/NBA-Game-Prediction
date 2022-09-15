@@ -74,7 +74,17 @@ def pred_vs_actual_prob_closure(
         ax=axs[0],
     )
     axs[0].set_title(f"{prob_key} closure")
-    axs[1].errorbar(x=x_data, y=ratio, yerr=y_err, color="black")
+    axs[1].errorbar(
+        x=x_data,
+        y=ratio,
+        yerr=y_err,
+        fmt="o",
+        color="black",
+        ecolor="grey",
+        elinewidth=3,
+        capsize=5,
+    )
+    axs[1].axhline(1, color="red", linestyle="--")
     axs[1].set_ylabel("Ratio of win probabilities (prediction/actual)")
     axs[1].set_xlabel("HOME win probability")
     out_file_name = os.path.join(out_dir, "probability_comparison_" + prob_key + ".png")
