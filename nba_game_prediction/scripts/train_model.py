@@ -64,17 +64,23 @@ def plot_xgb(estimator, x_train, y_train, x_test, y_test, out_dir):
 
     out_file_name = os.path.join(out_dir, "xgboost_importance.png")
     xgb.plot_importance(estimator)
-    fig = plt.gcf()
-    fig.savefig(out_file_name)
+    ax = plt.gca()
+    ax.xaxis.label.set_color("white")
+    ax.yaxis.label.set_color("white")
+    plt.savefig(out_file_name)
     plt.clf()
 
     # explain the model's predictions using SHAP
     explainer = shap.Explainer(estimator)
     shap_values = explainer(x_train)
     out_file_name = os.path.join(out_dir, "xgboost_shap_bar_summary.png")
-    shap.summary_plot(shap_values, feature_names=x_train.columns, plot_type="bar")
-    fig = plt.gcf()
-    fig.savefig(out_file_name)
+    shap.summary_plot(
+        shap_values, feature_names=x_train.columns, plot_type="bar", show=False
+    )
+    ax = plt.gca()
+    ax.xaxis.label.set_color("white")
+    ax.yaxis.label.set_color("white")
+    plt.savefig(out_file_name)
     plt.clf()
 
 
@@ -182,7 +188,7 @@ def main(config: Dict[str, Any]) -> None:
     )
 
     classifier_dict = {
-        "LinearRegression": LogisticRegression(),
+        "LogisticRegression": LogisticRegression(),
         "KNeighborsClassifier(n_neighbors=40)": KNeighborsClassifier(n_neighbors=40),
         "RandomForestClassifier(max_depth=3)": RandomForestClassifier(max_depth=3),
         "MLPClassifier(alpha=1, max_iter=200, hidden_layer_sizes=(50,))": MLPClassifier(

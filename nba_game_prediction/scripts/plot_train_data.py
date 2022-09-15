@@ -217,9 +217,7 @@ def pred_vs_actual_prob_closure(
     fig.savefig(out_file_name)
 
 
-def feature_correlation(
-    train_data: pd.DataFrame, cols_to_plot: List[str], method: str, out_dir: str
-) -> None:
+def feature_correlation(plot_data: pd.DataFrame, method: str, out_dir: str) -> None:
     """Creates heatmap of correlation for input features
 
     Args:
@@ -228,7 +226,6 @@ def feature_correlation(
         method (str): Which correlation method to use. (Choices: "pearson", "kendall", "spearman")
         out_dir (str): plots will be saved to the path of this directory
     """
-    plot_data = train_data[cols_to_plot]
     fig, ax = plt.subplots(figsize=(20, 15))
     cmap = sns.diverging_palette(0, 230, 90, 60, as_cmap=True)
     mask = np.triu(np.ones_like(plot_data.corr()))[1:, :-1]
@@ -243,6 +240,26 @@ def feature_correlation(
         cmap=cmap,
     )
     out_file_name = os.path.join(out_dir, "feature_correlation_" + method + ".png")
+    logger.info(f"Saving plot to: {out_file_name}")
+    fig.savefig(out_file_name)
+
+
+def plot_correlation_with_target(plot_data, method, out_dir):
+    corr = plot_data.corr(method=method)
+    temp = corr["HOME_WL"][1:].sort_values(ascending=False)
+    fig, ax = plt.subplots(figsize=(10, 30))
+    sns.barplot(
+        x=temp,
+        y=temp.index,
+        orient="h",
+        palette=["#ff6e9c70" if y > 0 else "#7A76C270" for y in temp],
+        ax=ax,
+    )
+    ax.bar_label(ax.containers[0], fmt="%.2f")
+    ax.set_title("Feature Correleation with HOME_WL", fontsize=20)
+    out_file_name = os.path.join(
+        out_dir, "target_feature_correlation_" + method + ".png"
+    )
     logger.info(f"Saving plot to: {out_file_name}")
     fig.savefig(out_file_name)
 
@@ -466,8 +483,12 @@ def main(config: Dict[str, Any]) -> None:
 
     for method in ["pearson", "kendall", "spearman"]:
         feature_correlation(
-            train_data,
-            config["plot_train_data"]["correlation_features"],
+            train_data[config["plot_train_data"]["correlation_features"]],
+            method,
+            config["output_dir"],
+        )
+        plot_correlation_with_target(
+            train_data[config["plot_train_data"]["correlation_features"]],
             method,
             config["output_dir"],
         )

@@ -68,9 +68,54 @@ Other features:
   - is_Playoffs
   - random_winprob
 
+
+<img src="output/feature_correlation_pearson.png" alt="correlation matrix" width="600"/>
+<img src="output/target_feature_correlation_kendall.png" alt="correlation matrix" width="400"/>
+
+#### Elo algorithms
+
+- Chess Elo
+- FiveThirtyEight (FTE) Elo
+- Microsoft Trueskill
+
 ### Models
 
 ## Results
+
+20000 for training 5000 for testing, droped first 1000
+
+
+
+<!-- <img src="output/team_FTE_ELO_plot.png" alt="team FTE Elo" width="600"/> -->
+
+<img src="output/probability_comparison_HOME_FTE_ELO_winprob.png" alt="FTE winprob closure" width="600"/>
+
+<img src="output/probability_comparison_LinearRegression.png" alt="FTE winprob closure" width="600"/>
+
+<img src="output/acc_per_season_HOME_FTE_ELO_winprob.png" alt="acc per season FTE" width="600"/>
+
+<img src="output/acc_per_season_LinearRegression.png" alt="acc per season FTE" width="600"/>
+
+<!-- <img src="output/xgboost_shap_bar_summary.png" alt="acc per season FTE" width="600"/> -->
+
+
+
+Method | Accuracy
+---------|----------
+Home team wins | 59.5 +- 0.3
+Trueskill | 64 +- 0.3
+Elo | 64.2 +- 0.3
+FTE Elo | 66.3 +- 0.3
+
+
+Model Accuracies:
+Algorithm | Test | Validation | Train
+---------|---------|----------|---------
+Logistic Regression | 67 | 66.5 +- 1 | 66.6
+XGBoost | 66.6 | 66.2 +- 0.9 | 66.8
+Random Forrest | 64.6 | 63.7 +- 0.8 | 64.8
+MLPClassifier | 66.9 | 66.4 +- 0.9 | 66.7
+KNN | 64.7 | 63.6 +- 1.1 | 66.1
 
 ## Conclusion
 

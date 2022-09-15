@@ -106,29 +106,5 @@ train_model:
   cut_n_games: 1000
   feature_list:
     - HOME_FTE_ELO_winprob
-    # - HOME_is_back_to_back
-    # - AWAY_is_back_to_back
     - is_Playoffs
-    # - HOME_won_last_game
-    # - HOME_FTE_ELO_mean_change_20G
-    # - HOME_PTS1_frac_20G
-    # - HOME_FT_PCT_20G
-    # - HOME_PTS2_frac_20G
-    # - HOME_FG2_PCT_20G
-    # - HOME_PTS3_frac_20G
-    # - HOME_FG3_PCT_20G
-    - HOME_PTS_oppo_ratio_20G
-    - HOME_WL_20G
-    # - AWAY_won_last_game
-    # - HOME_FGM_AST_frac_20G
-    # - AWAY_FGM_AST_frac_20G
-    # - AWAY_FTE_ELO_mean_change_20G
-    # - AWAY_PTS1_frac_20G
-    # - AWAY_FT_PCT_20G
-    # - AWAY_PTS2_frac_20G
-    # - AWAY_FG2_PCT_20G
-    # - AWAY_PTS3_frac_20G
-    # - AWAY_FG3_PCT_20G
-    - AWAY_PTS_oppo_ratio_20G
-    - AWAY_WL_20G
     - HOME_payroll_oppo_ratio
