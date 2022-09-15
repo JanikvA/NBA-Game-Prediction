@@ -9,9 +9,7 @@ import pandas as pd
 import shap
 import xgboost as xgb
 from aquarel import load_theme
-from labellines import labelLine
 from loguru import logger
-from scipy.stats.distributions import chi2
 from sklearn import metrics, model_selection, preprocessing
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
@@ -22,87 +20,9 @@ from sklearn.pipeline import make_pipeline
 from nba_game_prediction import config_modul
 from nba_game_prediction.scripts.plot_train_data import (
     get_binominal_std_dev_on_prob,
+    plot_accuracy_per_season,
     pred_vs_actual_prob_closure,
 )
-
-
-def plot_accuracy_per_season(y_test, test_pred, seasons_series, name, out_dir):
-    acc_dict = {"season": [], "accuracy": [], "uncertainty": []}
-    for season in seasons_series.unique():
-        this_season_indices = seasons_series[seasons_series == season].index
-        this_season_indices = this_season_indices[
-            this_season_indices.isin(y_test.index)
-        ]
-        test_pred_season = pd.Series(data=test_pred, index=y_test.index)
-        test_pred_season = test_pred_season[this_season_indices]
-        y_test_season = y_test[this_season_indices]
-        acc = metrics.accuracy_score(y_test_season, test_pred_season)
-        acc_unc = get_binominal_std_dev_on_prob(len(y_test_season), acc)
-        acc_dict["season"].append(season)
-        acc_dict["accuracy"].append(acc)
-        acc_dict["uncertainty"].append(acc_unc)
-    season_accuracies = pd.DataFrame(acc_dict)
-
-    # chi2 code from: https://www.astroml.org/book_figures/chapter4/fig_chi2_eval.html
-    # compute the mean and the chi^2/dof
-    mean_acc = metrics.accuracy_score(y_test, test_pred)
-    z = (season_accuracies["accuracy"] - mean_acc) / season_accuracies["uncertainty"]
-    chi2_sum = np.sum(z**2)
-    chi2dof = chi2_sum / (len(season_accuracies) - 1)
-
-    # compute the standard deviations of chi^2/dof
-    sigma = np.sqrt(2.0 / (len(season_accuracies) - 1))
-    nsig = (chi2dof - 1) / sigma
-
-    p_value = chi2.sf(chi2_sum, len(season_accuracies) - 1)
-    logger.info(f"{chi2_sum=:.2f}, {chi2dof=:.2f}, {sigma=:.2f}, {p_value=:.2f}")
-
-    fig, ax = plt.subplots(figsize=(10, 6))
-    ax.errorbar(
-        data=season_accuracies,
-        x="season",
-        y="accuracy",
-        yerr="uncertainty",
-        fmt="o",
-        color="black",
-        ecolor="grey",
-        elinewidth=3,
-        capsize=5,
-    )
-    ax.xaxis.set_major_locator(mpl.ticker.MaxNLocator(integer=True))
-    ax.set_xlabel("Season")
-    ax.set_ylabel("Accuracy")
-    # labeLine doens't work wll with ax.axhline... so I have to do this
-    x_beg, x_end = min(acc_dict["season"]) - 1, max(acc_dict["season"]) + 1
-    x_middle = (x_beg + x_end) / 2
-    mean_acc_line = ax.plot([x_beg, x_end], [mean_acc, mean_acc], color="red")
-    labelLine(
-        mean_acc_line[0],
-        x=x_middle,
-        label="Mean accuracy",
-        color="red",
-        fontweight="bold",
-    )
-    ax.set_xlim(x_beg, x_end)
-    ax.text(
-        0.02,
-        0.02,
-        r"$\hat{\mu} = %.2f$" % mean_acc,
-        ha="left",
-        va="bottom",
-        transform=ax.transAxes,
-    )
-    ax.text(
-        0.98,
-        0.02,
-        f"$\chi^2_{{\\rm dof}} = {chi2dof:.2f}\, ({nsig:.1f}\,\sigma), p = {p_value:.2f}$",
-        ha="right",
-        va="bottom",
-        transform=ax.transAxes,
-    )
-    out_file_name = os.path.join(out_dir, f"acc_per_season_{name}.png")
-    logger.info(f"Saving plot to: {out_file_name}")
-    fig.savefig(out_file_name)
 
 
 def train_xgb(x_train, y_train, x_test, y_test):

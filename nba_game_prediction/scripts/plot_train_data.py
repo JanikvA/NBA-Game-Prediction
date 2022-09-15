@@ -2,8 +2,9 @@ import math
 import os
 import random
 import sqlite3
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
+import matplotlib as mpl
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import numpy as np
@@ -11,9 +12,112 @@ import pandas as pd
 import seaborn as sns
 import uncertainties
 from aquarel import load_theme
+from labellines import labelLine
 from loguru import logger
+from scipy.stats.distributions import chi2
+from sklearn import metrics
 
 from nba_game_prediction import config_modul
+
+
+def calc_chi2dof(
+    y_test: pd.Series, mu: float, y_test_err: pd.Series, ndof: int
+) -> Tuple[float, float, float]:
+    # chi2 code from: https://www.astroml.org/book_figures/chapter4/fig_chi2_eval.html
+    # compute the mean and the chi^2/dof
+    z = (y_test - mu) / y_test_err
+    chi2_sum = np.sum(z**2)
+    chi2dof = chi2_sum / (ndof - 1)
+
+    # compute the standard deviations of chi^2/dof
+    sigma = np.sqrt(2.0 / (ndof - 1))
+    nsig = (chi2dof - 1) / sigma
+
+    p_value = chi2.sf(chi2_sum, ndof - 1)
+    logger.info(f"{chi2dof=:.2f}, {nsig=:.2f}, {p_value=:.2f}")
+    return chi2dof, nsig, p_value
+
+
+def add_chi2dof_res_to_plot(
+    ax: plt.axes, chi2dof: float, nsig: float, p_value: float, mu=None
+) -> None:
+    if mu:
+        ax.text(
+            0.02,
+            0.02,
+            f"$\hat{{\mu}} = {mu:.2f}$",
+            ha="left",
+            va="bottom",
+            transform=ax.transAxes,
+        )
+    ax.text(
+        0.98,
+        0.02,
+        f"$\chi^2_{{\\rm dof}} = {chi2dof:.2f}\, ({nsig:.1f}\,\sigma), p = {p_value:.2f}$",
+        ha="right",
+        va="bottom",
+        transform=ax.transAxes,
+    )
+
+
+def plot_accuracy_per_season(y_test, test_pred, seasons_series, name, out_dir):
+    acc_dict = {"season": [], "accuracy": [], "uncertainty": []}
+    for season in seasons_series.unique():
+        this_season_indices = seasons_series[seasons_series == season].index
+        this_season_indices = this_season_indices[
+            this_season_indices.isin(y_test.index)
+        ]
+        test_pred_season = pd.Series(data=test_pred, index=y_test.index)
+        test_pred_season = test_pred_season[this_season_indices]
+        y_test_season = y_test[this_season_indices]
+        acc = metrics.accuracy_score(y_test_season, test_pred_season)
+        acc_unc = get_binominal_std_dev_on_prob(len(y_test_season), acc)
+        acc_dict["season"].append(season)
+        acc_dict["accuracy"].append(acc)
+        acc_dict["uncertainty"].append(acc_unc)
+    season_accuracies = pd.DataFrame(acc_dict)
+
+    mean_acc = metrics.accuracy_score(y_test, test_pred)
+    chi2dof, nsig, p_value = calc_chi2dof(
+        season_accuracies["accuracy"],
+        mean_acc,
+        season_accuracies["uncertainty"],
+        len(season_accuracies["season"]),
+    )
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.errorbar(
+        data=season_accuracies,
+        x="season",
+        y="accuracy",
+        yerr="uncertainty",
+        fmt="o",
+        color="black",
+        ecolor="grey",
+        elinewidth=3,
+        capsize=5,
+    )
+    ax.xaxis.set_major_locator(mpl.ticker.MaxNLocator(integer=True))
+    ax.set_xlabel("Season")
+    ax.set_ylabel("Accuracy")
+
+    # labeLine doens't work wll with ax.axhline... so I have to do this
+    x_beg, x_end = min(acc_dict["season"]) - 1, max(acc_dict["season"]) + 1
+    x_middle = (x_beg + x_end) / 2
+    mean_acc_line = ax.plot([x_beg, x_end], [mean_acc, mean_acc], color="red")
+    labelLine(
+        mean_acc_line[0],
+        x=x_middle,
+        label="Mean accuracy",
+        color="red",
+        fontweight="bold",
+    )
+    ax.set_xlim(x_beg, x_end)
+    add_chi2dof_res_to_plot(ax, chi2dof, nsig, p_value, mean_acc)
+
+    out_file_name = os.path.join(out_dir, f"acc_per_season_{name}.png")
+    logger.info(f"Saving plot to: {out_file_name}")
+    fig.savefig(out_file_name)
 
 
 def add_random_probs(data: pd.DataFrame) -> None:
@@ -39,12 +143,14 @@ def pred_vs_actual_prob_closure(
         HOME_trueskill_winprob or random_winprob
         out_dir (str): The plots will be saved to this directory
     """
-    bins = [0, 0.25, 0.35, 0.45, 0.55, 0.65, 0.75, 1]
+    # bins = [0, 0.3, 0.4, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 1]
+    bins = [n / 10 for n in range(0, 11)]
     x_data = []
     y_pred_data = []
     y_actual_data = []
     y_err = []
     ratio = []
+    ratio_err = []
     for n, lower_bound in enumerate(bins):
         if n + 1 == len(bins):
             break
@@ -61,10 +167,14 @@ def pred_vs_actual_prob_closure(
         N = bin_data[result_key].count()
         y_data_unc_obj = uncertainties.ufloat(p, get_binominal_std_dev_on_prob(N, p))
         ratio_unc_obj = y_data_unc_obj / y_pred_data[-1]
-        y_err.append(ratio_unc_obj.std_dev)
+        y_err.append(y_data_unc_obj.std_dev)
         ratio.append(ratio_unc_obj.nominal_value)
+        ratio_err.append(ratio_unc_obj.std_dev)
+    chi2dof, nsig, p_value = calc_chi2dof(
+        pd.Series(ratio), 1, pd.Series(ratio_err), len(ratio)
+    )
 
-    fig, axs = plt.subplots(2, 1, figsize=(10, 6), sharex=True)
+    fig, axs = plt.subplots(3, 1, figsize=(10, 12), sharex=True)
     sns.histplot(
         data=data,
         x=prob_key,
@@ -74,19 +184,35 @@ def pred_vs_actual_prob_closure(
         ax=axs[0],
     )
     axs[0].set_title(f"{prob_key} closure")
+    axs[0].set_title(f"{prob_key} closure")
+    axs[0].set_xlim([0, 1])
+    axs[1].plot(bins, bins, c="black", linestyle="--")
+    axs[1].scatter(x_data, y_pred_data, c="black")
     axs[1].errorbar(
         x=x_data,
-        y=ratio,
+        y=y_actual_data,
         yerr=y_err,
+        fmt="o",
+        color="red",
+        ecolor="grey",
+        elinewidth=3,
+        capsize=5,
+    )
+    axs[1].set_ylim([0, 1])
+    axs[2].errorbar(
+        x=x_data,
+        y=ratio,
+        yerr=ratio_err,
         fmt="o",
         color="black",
         ecolor="grey",
         elinewidth=3,
         capsize=5,
     )
-    axs[1].axhline(1, color="red", linestyle="--")
-    axs[1].set_ylabel("Ratio of win probabilities (prediction/actual)")
-    axs[1].set_xlabel("HOME win probability")
+    add_chi2dof_res_to_plot(axs[2], chi2dof, nsig, p_value)
+    axs[2].axhline(1, color="red", linestyle="--")
+    axs[2].set_ylabel("Ratio")
+    axs[2].set_xlabel("HOME win probability")
     out_file_name = os.path.join(out_dir, "probability_comparison_" + prob_key + ".png")
     logger.info(f"Saving plot to: {out_file_name}")
     fig.savefig(out_file_name)
