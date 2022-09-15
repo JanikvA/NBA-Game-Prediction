@@ -3,10 +3,12 @@
 ## Summary
 
 **Situation**: The outcome of Basketball games can be influenced by multiple factors and it's accurate prediction is used by Odd-makers to create profit from betting customers
+
 **Task**: Create a way of predicting the winner of a basketball game in the National Basketball Association (NBA)
+
 **Action**:
-  - Collected data relevant to the prediction of NBA games from multiple sources for 26000 games played (seasons: 2000-2021)
-  - Explored the importance of different features using distributions, correlation and shapely values
+  - Collected data relevant for the prediction from multiple sources for 26000 games played in the NBA (seasons: 2000-2021)
+  - Explored the importance of different features by checking distributions, correlation and shapely values
   - Compared the accuracy of predictions for different models using scikit-learn and XGBoost
 
 **Result**:
@@ -60,7 +62,7 @@ The following features are averaged over the last 20 games (excluding the game t
   - PTS_oppo_ratio
   - FGM_AST_frac
 
-All features are avialable for the home (prefix: `_HOME`) and away (prefix: `AWAY_`) team
+All features are avialable for the home (prefix: `HOME_`) and away (prefix: `AWAY_`) team
 
 Other features:
   - is_Playoffs
@@ -104,7 +106,7 @@ A Docker image is also available:
 docker pull janikvapp/nba-game-prediction:latest
 ```
 
-### Getting Started
+### Scripts
 
 Scripts should be run in the following order:
 

@@ -44,18 +44,18 @@ def add_chi2dof_res_to_plot(
     if mu:
         ax.text(
             0.02,
-            0.02,
+            0.98,
             f"$\hat{{\mu}} = {mu:.2f}$",
             ha="left",
-            va="bottom",
+            va="top",
             transform=ax.transAxes,
         )
     ax.text(
         0.98,
-        0.02,
+        0.98,
         f"$\chi^2_{{\\rm dof}} = {chi2dof:.2f}\, ({nsig:.1f}\,\sigma), p = {p_value:.2f}$",
         ha="right",
-        va="bottom",
+        va="top",
         transform=ax.transAxes,
     )
 
@@ -143,7 +143,6 @@ def pred_vs_actual_prob_closure(
         HOME_trueskill_winprob or random_winprob
         out_dir (str): The plots will be saved to this directory
     """
-    # bins = [0, 0.3, 0.4, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 1]
     bins = [n / 10 for n in range(0, 11)]
     x_data = []
     y_pred_data = []
@@ -417,9 +416,6 @@ def main(config: Dict[str, Any]) -> None:
     train_data = pd.read_sql("SELECT * from train_data", connection)
     len_all_games = len(train_data)
     train_data = train_data.dropna()
-    train_data["AWAY_is_back_to_back"] = pd.to_numeric(
-        train_data["AWAY_is_back_to_back"]
-    )
     logger.info(f"Dropped {len_all_games-len(train_data)} games because of NaNs")
 
     for algo in ["ELO", "trueskill_mu", "FTE_ELO"]:
@@ -459,6 +455,13 @@ def main(config: Dict[str, Any]) -> None:
             prob,
             "HOME_WL",
             config["output_dir"],
+        )
+        plot_accuracy_per_season(
+            pd.to_numeric(train_data[prob] > 0.5),
+            train_data["HOME_WL"],
+            train_data["SEASON"],
+            name=prob,
+            out_dir=config["output_dir"],
         )
 
     for method in ["pearson", "kendall", "spearman"]:
