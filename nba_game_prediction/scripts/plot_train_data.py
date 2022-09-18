@@ -239,7 +239,7 @@ def feature_correlation(plot_data: pd.DataFrame, method: str, out_dir: str) -> N
         method (str): Which correlation method to use. (Choices: "pearson", "kendall", "spearman")
         out_dir (str): plots will be saved to the path of this directory
     """
-    fig, ax = plt.subplots(figsize=(20, 15))
+    fig, ax = plt.subplots(figsize=(13, 7))
     cmap = sns.diverging_palette(0, 230, 90, 60, as_cmap=True)
     mask = np.triu(np.ones_like(plot_data.corr()))[1:, :-1]
     sns.heatmap(
@@ -262,7 +262,7 @@ def feature_correlation(plot_data: pd.DataFrame, method: str, out_dir: str) -> N
 def plot_correlation_with_target(plot_data, method, out_dir):
     corr = plot_data.corr(method=method)
     temp = corr["HOME_WL"][1:].sort_values(ascending=False)
-    fig, ax = plt.subplots(figsize=(10, 30))
+    fig, ax = plt.subplots(figsize=(5, 10))
     sns.barplot(
         x=temp,
         y=temp.index,
@@ -271,7 +271,7 @@ def plot_correlation_with_target(plot_data, method, out_dir):
         ax=ax,
     )
     ax.bar_label(ax.containers[0], fmt="%.2f")
-    ax.set_title(f"Feature Correleation ({method}) with HOME_WL", fontsize=20)
+    ax.set_title(f"{method} correleation")
     out_file_name = os.path.join(
         out_dir, "target_feature_correlation_" + method + ".png"
     )
@@ -491,33 +491,33 @@ def main(config: Dict[str, Any]) -> None:
     train_data = train_data.dropna()
     logger.info(f"Dropped {len_all_games-len(train_data)} games because of NaNs")
 
-    for algo in ["ELO", "trueskill_mu", "FTE_ELO"]:
-        if "HOME_" + algo not in train_data.columns:
-            logger.warning(
-                f"""HOME_{algo} is not in the trainings data. Will not
-                run plot_team_skill or plot_league_skill_distribution.
-                To get this variable add it to
-                the config[create_trainings_data][feature_list]"""
-            )
-            continue
-        # plot_team_skill(
-        #     connection,
-        #     algo,
-        #     config["plot_train_data"]["teams_to_plot"],
-        #     int(config["plot_train_data"]["cut_n_games"] / 15),  # dividing by 15
-        #     # because for 15 games each team has played 1 game on average.
-        #     config["plot_train_data_outdir"],
-        # )
-        plot_payroll_vs_strength(train_data, algo, config["plot_train_data_outdir"])
-        # plot_league_skill_distribution(
-        #     connection,
-        #     algo,
-        #     int(config["plot_train_data"]["cut_n_games"] / 15),
-        #     config["plot_train_data_outdir"],
-        # )
+    # for algo in ["ELO", "trueskill_mu", "FTE_ELO"]:
+    #     if "HOME_" + algo not in train_data.columns:
+    #         logger.warning(
+    #             f"""HOME_{algo} is not in the trainings data. Will not
+    #             run plot_team_skill or plot_league_skill_distribution.
+    #             To get this variable add it to
+    #             the config[create_trainings_data][feature_list]"""
+    #         )
+    #         continue
+    # plot_team_skill(
+    #     connection,
+    #     algo,
+    #     config["plot_train_data"]["teams_to_plot"],
+    #     int(config["plot_train_data"]["cut_n_games"] / 15),  # dividing by 15
+    #     # because for 15 games each team has played 1 game on average.
+    #     config["plot_train_data_outdir"],
+    # )
+    # plot_payroll_vs_strength(train_data, algo, config["plot_train_data_outdir"])
+    # plot_league_skill_distribution(
+    #     connection,
+    #     algo,
+    #     int(config["plot_train_data"]["cut_n_games"] / 15),
+    #     config["plot_train_data_outdir"],
+    # )
 
-    # add_random_probs(train_data)
-    # add_home_team_wins(train_data)
+    add_random_probs(train_data)
+    add_home_team_wins(train_data)
 
     # for prob in [
     #     "HOME_ELO_winprob",
@@ -546,17 +546,17 @@ def main(config: Dict[str, Any]) -> None:
     #     out_dir=config["plot_train_data_outdir"],
     # )
 
-    # for method in ["pearson", "kendall", "spearman"]:
-    #     feature_correlation(
-    #         train_data[config["plot_train_data"]["correlation_features"]],
-    #         method,
-    #         config["plot_train_data_outdir"],
-    #     )
-    #     plot_correlation_with_target(
-    #         train_data[config["plot_train_data"]["correlation_features"]],
-    #         method,
-    #         config["plot_train_data_outdir"],
-    #     )
+    for method in ["pearson", "kendall", "spearman"]:
+        feature_correlation(
+            train_data[config["plot_train_data"]["correlation_features"]],
+            method,
+            config["plot_train_data_outdir"],
+        )
+        plot_correlation_with_target(
+            train_data[config["plot_train_data"]["correlation_features"]],
+            method,
+            config["plot_train_data_outdir"],
+        )
 
     # feature_pair_plot(
     #     train_data,

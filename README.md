@@ -104,7 +104,7 @@ Of the remaining 25000 games, 20000 are randomly collected for the training and 
 ## Results
 
 
-The following table shows the accuracy of predicting the correct winner when using the low-level algorithms:
+The following table shows the accuracy of predicting the correct winner when using low-level algorithms:
 
 Method | Accuracy [%]
 ---------|----------
@@ -115,7 +115,7 @@ FTE Elo | 66.3 +- 0.3
 
 We can see that the team with home-court advantage wins 59.5% of the time.
 The accuracy for Elo and Trueskill is around 64% and for the FTE-Elo algorithm (which incorparates home-court advantage and Elo) the accuracy is 66.3%.
-**Note on uncertainties:** All uncertainties are calculated using the [standard deviation of a Binomial distribution](https://en.wikipedia.org/wiki/Binomial_distribution) and which are propagated using [the standard propagation of uncertainty](https://en.wikipedia.org/wiki/Propagation_of_uncertainty). The only exceptions are the cases where an uncertainty from a cross-validation method is available.
+**Note on uncertainties:** All uncertainties are calculated using the [standard deviation of a Binomial distribution](https://en.wikipedia.org/wiki/Binomial_distribution) which are propagated using [the standard propagation of uncertainty](https://en.wikipedia.org/wiki/Propagation_of_uncertainty). The only exceptions are the cases where an uncertainty from a cross-validation method is available.
 
 <img src="imgs/acc_per_season_Home_awlays_wins.png" alt="acc per season FTE" width="600"/>
 
@@ -131,7 +131,7 @@ This figure shows again the accuracy of predictions per season but for the FTE-E
 The above figure shows a closure test.
 In the top most panel a histogram is shown in which each game is sorted into bins based on the predicted win probability for the home team using the FTE-Elo algorithm. The red colored portion of the histograms are the games in which the home team has actually won.
 In the middle panel the red markers show the actual win probability, i.e. the fraction of red in the bins compared to the whole bin.
-The bottom panel shows the ratio of predicted win probability and actual win probability. For a perfect algorithm these should be 1.
+The bottom panel shows the ratio of predicted win probability and actual win probability. For a perfect algorithm these should be compatible with 1.
 
 The pearson correlation of a selection of features can be seen in the following two plots:
 
@@ -144,9 +144,12 @@ Another feature strongly correlated with HOME_WL is the HOME_payroll_oppo_fracti
 This is further illustrated in the following scatter plot.
 
 <img src="imgs/payroll_FTE_ELO_corr.png" alt="acc per season FTE" width="600"/>
+
+For each season and team a point in the scatter plot represents the FTE-Elo the team had on the last day of the season and its payroll.
 <!-- TODO add annotations
 2005/06 NYK 2x leage avg
 highest elo: 2016/17 GSW after KD aquisition -->
+<!-- https://www.basketball-reference.com/leagues/NBA_2006_standings.html -->
 
 The [Shap python package](https://github.com/slundberg/shap) allows to efficiently calculate the Shapely values that are widely used in game theory. These values can be interpreted as a measure of feature importance (See [here](https://christophm.github.io/interpretable-ml-book/shap.html) for an in-depth explanation). The following shows this interpretation for the 20 most important features of the XGBoost model:
 
@@ -163,6 +166,7 @@ Random Forrest | 67 +- 0.7 | 66.5 +- 1 | 66.6 +- 0.3
 MLPClassifier | 67.7 +- 0.7 | 66.4 +- 0.8 | 67 +- 0.3
 KNN | 66.8 +- 0.7 | 65.3 +- 0.9 | 67.4 +- 0.3
 
+The accuracies calculated on the train, validation and test set are compatible with each other, ensuring that no significant over-fitting is present.
 These accuracies are not significantly different from those obtained only using the FTE-Elo algorithm for prediction.
 
 The following two plots show the prediction accuracy and the closure test for the logistic regression model. For a detailed explanation please see the description for the version of these plots with the FTE-Elo algorithm. Note that these plots were made using the test data set and therefore have a larger uncertainty compared to the equivalent FTE-Elo plots which were made using the full data set.

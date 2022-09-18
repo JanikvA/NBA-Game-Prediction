@@ -63,8 +63,7 @@ def plot_xgb(estimator, x_train, y_train, x_test, y_test, out_dir):
     pred_vs_actual_prob_closure(dummy_df, "xgboost", "HOME_WL", out_dir)
 
     out_file_name = os.path.join(out_dir, "xgboost_importance.png")
-    xgb.plot_importance(estimator)
-    ax = plt.gca()
+    ax = xgb.plot_importance(estimator)
     ax.xaxis.label.set_color("white")
     ax.yaxis.label.set_color("white")
     plt.savefig(out_file_name)
