@@ -197,17 +197,21 @@ def main(config: Dict[str, Any]) -> None:
     }
     for name, clf in classifier_dict.items():
         fit_and_plot_clf(
-            name, clf, **train_test_data, seasons=seasons, out_dir=config["output_dir"]
+            name,
+            clf,
+            **train_test_data,
+            seasons=seasons,
+            out_dir=config["train_model_outdir"],
         )
 
     estimator = train_xgb(**train_test_data)
-    plot_xgb(estimator, **train_test_data, out_dir=config["output_dir"])
+    plot_xgb(estimator, **train_test_data, out_dir=config["train_model_outdir"])
     plot_accuracy_per_season(
         train_test_data["y_test"],
         estimator.predict(train_test_data["x_test"]),
         seasons,
         "xgboost",
-        config["output_dir"],
+        config["train_model_outdir"],
     )
 
 

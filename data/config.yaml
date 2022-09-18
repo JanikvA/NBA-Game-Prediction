@@ -1,7 +1,6 @@
-data_dir: data
 sql_db_path: data/nba_games.db
-output_dir: output/three_features
-logging_file: output/three_features/output.log
+output_dir: output
+logging_file_name: output.log
 logging_level: DEBUG
 
 collect_game_data:
@@ -67,6 +66,7 @@ create_train_data:
 
 
 plot_train_data:
+  dir_name: data_plots
   # cuts out the earliest {cut_n_games} games to give the elo algorithms time to settle
   cut_n_games: 1000
   teams_to_plot:
@@ -103,60 +103,74 @@ plot_train_data:
     - HOME_WL_20G
 
 train_model:
+  dir_name: all_features
   cut_n_games: 1000
   feature_list:
-    - HOME_FTE_ELO_winprob
-    - is_Playoffs
-    - HOME_payroll_oppo_ratio
 
-
-    # - HOME_is_back_to_back
-    # - HOME_fraction_total_payroll
-    # - HOME_ELO
-    # - HOME_ELO_winprob
-    # - HOME_trueskill_mu
-    # - HOME_trueskill_winprob
-    # - HOME_FTE_ELO
     # - HOME_FTE_ELO_winprob
+    # - is_Playoffs
+
+    # - HOME_FTE_ELO_winprob
+    # - is_Playoffs
     # - HOME_payroll_oppo_ratio
     # - HOME_won_last_game
-    # - HOME_WL_20G
-    # - HOME_ELO_mean_20G
-    # - HOME_ELO_mean_change_20G
-    # - HOME_trueskill_mu_mean_20G
-    # - HOME_trueskill_mu_mean_change_20G
-    # - HOME_FTE_ELO_mean_20G
-    # - HOME_FTE_ELO_mean_change_20G
-    # - HOME_PTS1_frac_20G
-    # - HOME_FT_PCT_20G
-    # - HOME_PTS2_frac_20G
-    # - HOME_FG2_PCT_20G
     # - HOME_PTS3_frac_20G
     # - HOME_FG3_PCT_20G
     # - HOME_PTS_oppo_ratio_20G
-    # - HOME_FGM_AST_frac_20G
-    # - AWAY_is_back_to_back
-    # - AWAY_fraction_total_payroll
-    # - AWAY_ELO
-    # - AWAY_ELO_winprob
-    # - AWAY_trueskill_mu
-    # - AWAY_trueskill_winprob
-    # - AWAY_FTE_ELO
-    # - AWAY_FTE_ELO_winprob
-    # - AWAY_payroll_oppo_ratio
+    # - HOME_WL_20G
     # - AWAY_won_last_game
-    # - AWAY_WL_20G
-    # - AWAY_ELO_mean_20G
-    # - AWAY_ELO_mean_change_20G
-    # - AWAY_trueskill_mu_mean_20G
-    # - AWAY_trueskill_mu_mean_change_20G
-    # - AWAY_FTE_ELO_mean_20G
-    # - AWAY_FTE_ELO_mean_change_20G
-    # - AWAY_PTS1_frac_20G
-    # - AWAY_FT_PCT_20G
-    # - AWAY_PTS2_frac_20G
-    # - AWAY_FG2_PCT_20G
     # - AWAY_PTS3_frac_20G
     # - AWAY_FG3_PCT_20G
     # - AWAY_PTS_oppo_ratio_20G
-    # - AWAY_FGM_AST_frac_20G
+    # - AWAY_WL_20G
+
+    - HOME_payroll_oppo_ratio
+    - HOME_is_back_to_back
+    - HOME_fraction_total_payroll
+    - HOME_ELO
+    - HOME_ELO_winprob
+    - HOME_trueskill_mu
+    - HOME_trueskill_winprob
+    - HOME_FTE_ELO
+    - HOME_FTE_ELO_winprob
+    - HOME_won_last_game
+    - HOME_WL_20G
+    - HOME_ELO_mean_20G
+    - HOME_ELO_mean_change_20G
+    - HOME_trueskill_mu_mean_20G
+    - HOME_trueskill_mu_mean_change_20G
+    - HOME_FTE_ELO_mean_20G
+    - HOME_FTE_ELO_mean_change_20G
+    - HOME_PTS1_frac_20G
+    - HOME_FT_PCT_20G
+    - HOME_PTS2_frac_20G
+    - HOME_FG2_PCT_20G
+    - HOME_PTS3_frac_20G
+    - HOME_FG3_PCT_20G
+    - HOME_PTS_oppo_ratio_20G
+    - HOME_FGM_AST_frac_20G
+    - AWAY_is_back_to_back
+    - AWAY_fraction_total_payroll
+    - AWAY_ELO
+    - AWAY_ELO_winprob
+    - AWAY_trueskill_mu
+    - AWAY_trueskill_winprob
+    - AWAY_FTE_ELO
+    - AWAY_FTE_ELO_winprob
+    - AWAY_payroll_oppo_ratio
+    - AWAY_won_last_game
+    - AWAY_WL_20G
+    - AWAY_ELO_mean_20G
+    - AWAY_ELO_mean_change_20G
+    - AWAY_trueskill_mu_mean_20G
+    - AWAY_trueskill_mu_mean_change_20G
+    - AWAY_FTE_ELO_mean_20G
+    - AWAY_FTE_ELO_mean_change_20G
+    - AWAY_PTS1_frac_20G
+    - AWAY_FT_PCT_20G
+    - AWAY_PTS2_frac_20G
+    - AWAY_FG2_PCT_20G
+    - AWAY_PTS3_frac_20G
+    - AWAY_FG3_PCT_20G
+    - AWAY_PTS_oppo_ratio_20G
+    - AWAY_FGM_AST_frac_20G

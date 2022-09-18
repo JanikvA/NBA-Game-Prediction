@@ -14,10 +14,12 @@ import uncertainties
 from aquarel import load_theme
 from labellines import labelLine
 from loguru import logger
+from matplotlib import rcParams
 from scipy.stats.distributions import chi2
 from sklearn import metrics
 
 from nba_game_prediction import config_modul
+from nba_game_prediction.scripts.create_train_data import get_all_team_names
 
 
 def calc_chi2dof(
@@ -45,7 +47,7 @@ def add_chi2dof_res_to_plot(
         ax.text(
             0.02,
             0.98,
-            f"$\hat{{\mu}} = {mu:.2f}$",
+            f"$\hat{{\mu}} = {mu:.3f}$",
             ha="left",
             va="top",
             transform=ax.transAxes,
@@ -100,6 +102,7 @@ def plot_accuracy_per_season(y_test, test_pred, seasons_series, name, out_dir):
     ax.xaxis.set_major_locator(mpl.ticker.MaxNLocator(integer=True))
     ax.set_xlabel("Season")
     ax.set_ylabel("Accuracy")
+    ax.set_title(f"{name}", fontsize=20)
 
     # labeLine doens't work wll with ax.axhline... so I have to do this
     x_beg, x_end = min(acc_dict["season"]) - 1, max(acc_dict["season"]) + 1
@@ -115,13 +118,19 @@ def plot_accuracy_per_season(y_test, test_pred, seasons_series, name, out_dir):
     ax.set_xlim(x_beg, x_end)
     add_chi2dof_res_to_plot(ax, chi2dof, nsig, p_value, mean_acc)
 
+    # TODO this sequence is used often. turn it into a function
     out_file_name = os.path.join(out_dir, f"acc_per_season_{name}.png")
     logger.info(f"Saving plot to: {out_file_name}")
     fig.savefig(out_file_name)
+    plt.close("all")
 
 
 def add_random_probs(data: pd.DataFrame) -> None:
     data["random_winprob"] = data.apply(lambda row: random.uniform(0, 1), axis=1)
+
+
+def add_home_team_wins(data: pd.DataFrame) -> None:
+    data["home_winprob"] = 1
 
 
 def get_binominal_std_dev_on_prob(n, p):
@@ -186,7 +195,7 @@ def pred_vs_actual_prob_closure(
     axs[0].set_title(f"{prob_key} closure")
     axs[0].set_xlim([0, 1])
     axs[1].plot(bins, bins, c="black", linestyle="--")
-    axs[1].scatter(x_data, y_pred_data, c="black")
+    axs[1].scatter(x_data, y_pred_data, c="black", label="Predicted")
     axs[1].errorbar(
         x=x_data,
         y=y_actual_data,
@@ -196,8 +205,11 @@ def pred_vs_actual_prob_closure(
         ecolor="grey",
         elinewidth=3,
         capsize=5,
+        label="Measured",
     )
     axs[1].set_ylim([0, 1])
+    axs[1].set_ylabel("Win probability")
+    axs[1].legend()
     axs[2].errorbar(
         x=x_data,
         y=ratio,
@@ -210,11 +222,12 @@ def pred_vs_actual_prob_closure(
     )
     add_chi2dof_res_to_plot(axs[2], chi2dof, nsig, p_value)
     axs[2].axhline(1, color="red", linestyle="--")
-    axs[2].set_ylabel("Ratio")
-    axs[2].set_xlabel("HOME win probability")
+    axs[2].set_ylabel("Predicted/Observed")
+    axs[2].set_xlabel("Predicted HOME win probability")
     out_file_name = os.path.join(out_dir, "probability_comparison_" + prob_key + ".png")
     logger.info(f"Saving plot to: {out_file_name}")
     fig.savefig(out_file_name)
+    plt.close("all")
 
 
 def feature_correlation(plot_data: pd.DataFrame, method: str, out_dir: str) -> None:
@@ -239,9 +252,11 @@ def feature_correlation(plot_data: pd.DataFrame, method: str, out_dir: str) -> N
         fmt=".2f",
         cmap=cmap,
     )
+    ax.set_title(f"Correleation ({method}) Matrix", fontsize=20)
     out_file_name = os.path.join(out_dir, "feature_correlation_" + method + ".png")
     logger.info(f"Saving plot to: {out_file_name}")
     fig.savefig(out_file_name)
+    plt.close("all")
 
 
 def plot_correlation_with_target(plot_data, method, out_dir):
@@ -256,12 +271,13 @@ def plot_correlation_with_target(plot_data, method, out_dir):
         ax=ax,
     )
     ax.bar_label(ax.containers[0], fmt="%.2f")
-    ax.set_title("Feature Correleation with HOME_WL", fontsize=20)
+    ax.set_title(f"Feature Correleation ({method}) with HOME_WL", fontsize=20)
     out_file_name = os.path.join(
         out_dir, "target_feature_correlation_" + method + ".png"
     )
     logger.info(f"Saving plot to: {out_file_name}")
     fig.savefig(out_file_name)
+    plt.close("all")
 
 
 # TODO this is slow. make it faster
@@ -286,6 +302,7 @@ def feature_pair_plot(
     out_file_name = os.path.join(out_dir, "feature_pair_plot.png")
     logger.info(f"Saving plot to: {out_file_name}")
     g.savefig(out_file_name)
+    plt.close("all")
 
 
 def plot_team_skill(
@@ -341,6 +358,7 @@ def plot_team_skill(
     out_file_name = os.path.join(out_dir, f"team_{algo}_plot.png")
     logger.info(f"Saving plot to: {out_file_name}")
     fig.savefig(out_file_name)
+    plt.close("all")
 
 
 def plot_league_skill_distribution(
@@ -419,6 +437,43 @@ def plot_league_skill_distribution(
     out_file_name = os.path.join(out_dir, f"season_{algo}_plot.png")
     logger.info(f"Saving plot to: {out_file_name}")
     g.savefig(out_file_name)
+    plt.close("all")
+
+
+def plot_payroll_vs_strength(data, algo, out_dir):
+    plot_data = {algo: [], "payroll_fraction": [], "champion": []}
+    for season in data["SEASON"].unique():
+        season_data = data[data["SEASON"] == season]
+        last_season_game = season_data.iloc[-1]
+        if last_season_game["HOME_WL"] == 1:
+            champion_team = last_season_game["HOME_TEAM_NAME"]
+        else:
+            champion_team = last_season_game["AWAY_TEAM_NAME"]
+        for team in get_all_team_names(season_data):
+            last_game_for_team = season_data[
+                season_data["HOME_TEAM_NAME"] == team
+            ].iloc[-1]
+            plot_data[algo].append(last_game_for_team[f"HOME_{algo}"])
+            plot_data["payroll_fraction"].append(
+                last_game_for_team["HOME_fraction_total_payroll"]
+            )
+            plot_data["champion"].append(team == champion_team)
+
+    plot_data = pd.DataFrame(plot_data)
+    jointGrid = sns.jointplot(
+        data=plot_data,
+        x="payroll_fraction",
+        y=algo,
+        hue="champion",
+        alpha=0.6,
+        marginal_kws={"common_norm": False},
+    )
+    jointGrid.figure.suptitle(f"{algo}", fontsize=20)
+    jointGrid.set_axis_labels("team payroll / league mean", algo)
+    out_file_name = os.path.join(out_dir, f"payroll_{algo}_corr.png")
+    logger.info(f"Saving plot to: {out_file_name}")
+    jointGrid.savefig(out_file_name)
+    plt.close("all")
 
 
 def main(config: Dict[str, Any]) -> None:
@@ -429,6 +484,7 @@ def main(config: Dict[str, Any]) -> None:
     """
     theme = load_theme("arctic_dark").set_overrides({"font.family": "monospace"})
     theme.apply()
+    rcParams.update({"figure.autolayout": True})
     connection = sqlite3.connect(config["sql_db_path"])
     train_data = pd.read_sql("SELECT * from train_data", connection)
     len_all_games = len(train_data)
@@ -444,61 +500,70 @@ def main(config: Dict[str, Any]) -> None:
                 the config[create_trainings_data][feature_list]"""
             )
             continue
-        plot_team_skill(
-            connection,
-            algo,
-            config["plot_train_data"]["teams_to_plot"],
-            int(config["plot_train_data"]["cut_n_games"] / 15),  # dividing by 15
-            # because for 15 games each team has played 1 game on average.
-            config["output_dir"],
-        )
-        plot_league_skill_distribution(
-            connection,
-            algo,
-            int(config["plot_train_data"]["cut_n_games"] / 15),
-            config["output_dir"],
-        )
+        # plot_team_skill(
+        #     connection,
+        #     algo,
+        #     config["plot_train_data"]["teams_to_plot"],
+        #     int(config["plot_train_data"]["cut_n_games"] / 15),  # dividing by 15
+        #     # because for 15 games each team has played 1 game on average.
+        #     config["plot_train_data_outdir"],
+        # )
+        plot_payroll_vs_strength(train_data, algo, config["plot_train_data_outdir"])
+        # plot_league_skill_distribution(
+        #     connection,
+        #     algo,
+        #     int(config["plot_train_data"]["cut_n_games"] / 15),
+        #     config["plot_train_data_outdir"],
+        # )
 
-    add_random_probs(train_data)
+    # add_random_probs(train_data)
+    # add_home_team_wins(train_data)
 
-    for prob in [
-        "HOME_ELO_winprob",
-        "HOME_trueskill_winprob",
-        "HOME_FTE_ELO_winprob",
-        "random_winprob",
-    ]:
-        pred_vs_actual_prob_closure(
-            train_data[config["plot_train_data"]["cut_n_games"] :],
-            prob,
-            "HOME_WL",
-            config["output_dir"],
-        )
-        plot_accuracy_per_season(
-            pd.to_numeric(train_data[prob] > 0.5),
-            train_data["HOME_WL"],
-            train_data["SEASON"],
-            name=prob,
-            out_dir=config["output_dir"],
-        )
+    # for prob in [
+    #     "HOME_ELO_winprob",
+    #     "HOME_trueskill_winprob",
+    #     "HOME_FTE_ELO_winprob",
+    #     "random_winprob",
+    # ]:
+    #     pred_vs_actual_prob_closure(
+    #         train_data[config["plot_train_data"]["cut_n_games"] :],
+    #         prob,
+    #         "HOME_WL",
+    #         config["plot_train_data_outdir"],
+    #     )
+    #     plot_accuracy_per_season(
+    #         pd.to_numeric(train_data[prob] > 0.5),
+    #         train_data["HOME_WL"],
+    #         train_data["SEASON"],
+    #         name=prob,
+    #         out_dir=config["plot_train_data_outdir"],
+    #     )
+    # plot_accuracy_per_season(
+    #     pd.to_numeric(train_data["home_winprob"] > 0.5),
+    #     train_data["HOME_WL"],
+    #     train_data["SEASON"],
+    #     name="Home_awlays_wins",
+    #     out_dir=config["plot_train_data_outdir"],
+    # )
 
-    for method in ["pearson", "kendall", "spearman"]:
-        feature_correlation(
-            train_data[config["plot_train_data"]["correlation_features"]],
-            method,
-            config["output_dir"],
-        )
-        plot_correlation_with_target(
-            train_data[config["plot_train_data"]["correlation_features"]],
-            method,
-            config["output_dir"],
-        )
+    # for method in ["pearson", "kendall", "spearman"]:
+    #     feature_correlation(
+    #         train_data[config["plot_train_data"]["correlation_features"]],
+    #         method,
+    #         config["plot_train_data_outdir"],
+    #     )
+    #     plot_correlation_with_target(
+    #         train_data[config["plot_train_data"]["correlation_features"]],
+    #         method,
+    #         config["plot_train_data_outdir"],
+    #     )
 
-    feature_pair_plot(
-        train_data,
-        config["plot_train_data"]["pair_plot_features"],
-        config["output_dir"],
-    )
-    connection.close()
+    # feature_pair_plot(
+    #     train_data,
+    #     config["plot_train_data"]["pair_plot_features"],
+    #     config["plot_train_data_outdir"],
+    # )
+    # connection.close()
 
 
 if __name__ == "__main__":
