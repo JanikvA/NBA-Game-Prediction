@@ -23,8 +23,7 @@ Betting on the outcome of sports games has been a popular activity for a long ti
 Professional Odd-makers can use data collected in the past to predict the probability of future events.
 The more precise these predicted probabilities are the more profit can be generated from betting people.
 
-
-## How are other people solving this problem?
+<!-- ## How are other people solving this problem? -->
 
 ## Methods
 
